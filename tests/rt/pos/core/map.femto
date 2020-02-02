@@ -1,7 +1,0 @@
-let fun map f list =
-     case list of
-        [] => []
-      | (x::xs) => (f x) :: (map f xs)
-
-in map (fn x => x + 1)  [10, 20, 30]
-end

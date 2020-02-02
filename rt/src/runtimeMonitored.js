@@ -1,10 +1,19 @@
 'use strict'
+// External packages
 const assert = require('assert');
 const request = require('request');
-const ThreadError = require('./ThreadError.js').ThreadError
 const fs = require('fs');
+const { promisify } = require ('util')
+const colors = require ('colors/safe') //get color and style in your node.js console
+const os = require('os');
+const uuidv4 = require('uuid/v4');
+let yargs = require('yargs');
 
-const RtClosure = require('./RtClosure.js')
+// Internal runtime packages
+const ThreadError = require('./ThreadError').ThreadError
+const RtClosure = require('./RtClosure')
+const { isListFlagSet, isTupleFlagSet } = require ('./ValuesUtil');
+
 
 class RtEnv {
   constructor() {
@@ -15,20 +24,15 @@ class RtEnv {
 
 
 
-const { isListFlagSet, isTupleFlagSet } = require ('./ValuesUtil.js');
 
 
-const { promisify } = require ('util')
+
+
 const readFile = promisify (fs.readFile);
 
-const colors = require ('colors/safe')
-
-const os = require('os');
-
-const uuidv4 = require('uuid/v4');
 const rt_uuid = uuidv4();
 
-let yargs = require('yargs');
+
 
 
 let logLevel = yargs.argv.debug?'debug':'info';

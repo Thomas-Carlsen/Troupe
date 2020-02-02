@@ -1,4 +1,0 @@
-let val x = 10 raisedTo {alice}
-    val y = 20 raisedTo {bob}
-in x + y
-end

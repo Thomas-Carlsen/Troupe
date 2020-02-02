@@ -1,4 +1,0 @@
-let fun f (x,y) = x + y
-     |  f  _    = 42
-in f 10
-end

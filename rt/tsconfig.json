@@ -2,9 +2,10 @@
     "compilerOptions": {
         "outDir": "./built",
         "allowJs": true,
-         "moduleResolution": "node",
+        "moduleResolution": "node",
+        "sourceMap": true,
         "module": "commonjs",
-        "target": "ES2017"
+        "target": "es5"
     },
     "include": [
         "./src/**/*"

@@ -1,5 +1,0 @@
-let val x = authority 
-    val _ = save (1, x)
-    val y = restore (1)
-in print  ( x, y)  
-end 

@@ -1,7 +1,0 @@
-let fun fst x =
-         let val (a,_) = x
-         in a
-         end
-in
-  fst (10,20)
-end

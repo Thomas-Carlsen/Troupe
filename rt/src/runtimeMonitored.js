@@ -3,54 +3,52 @@
 const assert = require('assert');
 const request = require('request');
 const fs = require('fs');
-const { promisify } = require ('util')
-const colors = require ('colors/safe') //get color and style in your node.js console
+const { promisify } = require ('util');
+const colors = require ('colors/safe'); //get color and style in your node.js console
 const os = require('os');
 const uuidv4 = require('uuid/v4');
 let yargs = require('yargs');
+const readline = require('readline').createInterface({
+  input: process.stdin,
+  output: process.stdout
+});
 
 // Internal runtime packages
 const ThreadError = require('./ThreadError').ThreadError
 const RtClosure = require('./RtClosure')
 const { isListFlagSet, isTupleFlagSet } = require ('./ValuesUtil');
+const logger = require('./logger').mkLogger('RTM', logLevel);
+// an attempt to modularize the runtime; 2018-07-16; AA
+const Scheduler = require('./Scheduler');
+const LVal = require('./Lval').LVal;
+const proc = require('./process');
+
+const MailboxProcessor = require('./MailboxProcessor');
+const NodeManager = require('./NodeManager');
+const loadLibs = require('./loadLibs');
+const BaseFunction = require('./BaseFunction').BaseFunction;
+const SandboxStatus = require('./SandboxStatus').HandlerState;
+const Authority = require('./Authority').Authority;
+const options = require('./options');
+const Level = require('./Level').Level;
+const __unitbase = require('./UnitBase');
+let SS = require('./serialize')
+let p2p = require('./p2p/p2p')
 
 
-class RtEnv {
-  constructor() {
-    // this.ret = __sched.ret;
-  }
-}
 
 
 
-
-
-
-
-
-const readFile = promisify (fs.readFile);
-
-const rt_uuid = uuidv4();
-
-
-
-
+// log stuff
 let logLevel = yargs.argv.debug?'debug':'info';
-
-const logger = require('./logger.js').mkLogger('RTM', logLevel);
-
-
 const info = x => logger.info(x)
 const debug = x => logger.debug(x)
 
-const readline = require('readline').createInterface({
-  input: process.stdin,
-  output: process.stdout
-})
+// input stuff
+const readFile = promisify (fs.readFile);
 
 const lineBuffer = [];
 const readlineCallbacks = []
-
 
 function lineListener (input) {  
   if (readlineCallbacks.length > 0 ) {
@@ -65,27 +63,9 @@ readline.on ('line', lineListener)
 
 
 
-// an attempt to modularize the runtime; 2018-07-16; AA
-//
-const Scheduler = require('./Scheduler.js');
-const LVal = require('./Lval.js').LVal;
-const proc = require('./process.js');
 
-const MailboxProcessor = require('./MailboxProcessor.js');
-const NodeManager = require('./NodeManager.js');
-const loadLibs = require('./loadLibs.js');
-const BaseFunction = require('./BaseFunction.js').BaseFunction;
-
-const SandboxStatus = require('./SandboxStatus.js').HandlerState;
-
-// const levels = require('./levels/lohi.js');
-
-const Authority = require('./Authority.js').Authority;
-const options = require('./options.js');
-
+// lattice stuff
 const levels = options;
-
-const Level = require('./Level.js').Level;
 
 const lub = levels.lub;
 
@@ -104,14 +84,9 @@ function lubs (x) {
 const glb = levels.glb;
 const flowsTo = levels.flowsTo;
 
+
+const rt_uuid = uuidv4();
 let ProcessID = proc.ProcessID;
-const __unitbase = require('./UnitBase.js');
-let SS = require('./serialize.js')
-// let WS = require('./webserver.js')
-
-let p2p = require('./p2p/p2p.js')
-
-
 const __sched = new Scheduler(rt_uuid);
 const __theMailbox = new MailboxProcessor(__sched);
 const __nodeManager = new NodeManager(levels); // 2019-01-03: todo: use options; AA
@@ -140,6 +115,11 @@ const __unit = __sched.__unit;
 /////////////////////////////////////
 
 
+class RtEnv {
+  constructor() {
+    // this.ret = __sched.ret;
+  }
+}
 
 
 class LibEnv {
@@ -200,6 +180,8 @@ async function spawnAtNode(nodeid, f) {
     debug("error spawning remotely; this blocks current thread" + err)
   }
 }
+
+
 
 let _allowRemoteSpawn = false;
 function remoteSpawnOK ()  {
@@ -1189,6 +1171,7 @@ function assertPairAreStringsOrNumbers (x,y) {
   }
 }
 
+
 function RuntimeObject() {
   this.Atom = function (name, creation_uuid = rt_uuid) {
     let atm = {
@@ -1203,6 +1186,7 @@ function RuntimeObject() {
   this.assertIsHandler = assertIsHandler
   this.assertIsNTuple = assertIsNTuple
   this.assertIsFunction = assertIsFunction
+
   this.Authority = Authority;
   this.ProcessID = ProcessID;
   this.LVal = LVal;
@@ -1227,16 +1211,12 @@ function RuntimeObject() {
   this.mkCopy = rt_mkCopy
   this.mkTuple = rt_mkTuple
   this.mkList = rt_mkList
-
   this.loadLib = rt_loadLib
-
   this.debug = rt_debug 
-
   this.linkLibs = rt_linkLibs
-
   this.levels = levels
-
   this.mkLabel = rt_mkLabel
+
   this.raisedTo = function (x, y) {
     return new LVal(x.val, lub(lub(x.lev, y.val), y.lev), lubs([x.tlev, y.tlev, __sched.pc]) )
   }
@@ -1571,8 +1551,10 @@ process.on('SIGINT', () =>{
   }); 
 })
 
+
+// f refers to a compiled Troupe program with a given runtime (the rtObj object)
 async function start(f) {
-  SS.setRuntimeObj(rtObj);
+  //SS.setRuntimeObj(rtObj);
   // debug ("runing with uuid:", rt_uuid)
 
   function networkReady(p) {

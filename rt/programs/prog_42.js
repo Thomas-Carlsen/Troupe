@@ -1,4 +1,4 @@
-function Top (rt) {
+export function Top (rt) {
   this.uuid = rt.rt_uuid
   this.libSet = new Set ()
   this.libs = []
@@ -12,4 +12,3 @@ function Top (rt) {
   this.main.deps = [];
   this.main.serialized = "AAAAAAAAAAAEbWFpbgAAAAAAAAAOJCRhdXRob3JpdHlhcmcAAAAAAAAAAQAAAAAAAAAAB2dlbnN5bTEFAAAAAAAqAAAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAQEAAAAAAAAAAAdnZW5zeW0x";
 }
-module.exports = Top 

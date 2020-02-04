@@ -1,28 +1,34 @@
-let term_options =
-{
-    convertEol: true
-    , cursorBlink: true
-    , fontSize: 16
-    , fontWeight: '700'
-    , theme:
-    {
-        foreground: '#4E9A05'
-        , background: '#000b00'
-        , cursor: '#4E9A05'
+import { Top as prog_42} from "./programs/prog_42.js";
 
+const progs = {
+    "prog_42.js": prog_42
+} 
+
+let term_options = {
+    convertEol: true, 
+    cursorBlink: true, 
+    fontSize: 16, 
+    fontWeight: '700', 
+    theme: {
+        foreground: '#4E9A05', 
+        background: '#000b00', 
+        cursor: '#4E9A05'
     }
 }
 
-let term = new xterm.Terminal(term_options) //{fontFamily: "Courier", fontSize: 24});
+let term = new xterm.Terminal(term_options);
 
-let term_prompt = "troupe-web> ";
+let term_prompt = "troupe-webcli> ";
 
-let line_buffer = []
-let cursor_pos = 0
-let eol = 0
+let line_buffer = [];
+let cursor_pos = 0;
+let eol = 0;
+let cmd_hist = [];
+
 
 function handlePrintable(c) {
     term.write(c);
+
     // Save cursor pos
     term.write('\x1b[s');
     line_buffer.splice(cursor_pos, 0, c);
@@ -31,11 +37,12 @@ function handlePrintable(c) {
     // Delete right
     term.write('\x1b[K');
     // Fill right
-    for (i = cursor_pos; i < line_buffer.length; i++)
+    for (var i = cursor_pos; i < line_buffer.length; i++)
         term.write(line_buffer[i]);
     // Restore cursor pos
     term.write('\x1b[u');
 }
+
 
 function deleteAtCursor() {
     // Save cursor pos
@@ -43,93 +50,144 @@ function deleteAtCursor() {
     // Delete right
     term.write('\x1b[K');
     // Fill right
-    for (i = cursor_pos; i < line_buffer.length; i++)
+    for (var i = cursor_pos; i < line_buffer.length; i++)
         term.write(line_buffer[i]);
     // Restore cursor pos
     term.write('\x1b[u');
 }
 
+function runTroupe(args) {
+
+    // fake object to test program
+    let rt = {};
+    rt.rt_uuid = 2; 
+    rt.linkLibs = (a, b, c) => {return a;};
+    rt.ret = (a) => {term.write("\n" + a);};
+    rt.mkValPos = (a, b) => {return a;};
+
+    let file = args[0];
+    if (progs[file] != undefined) {
+        let res = new progs[file](rt);
+        res.main();
+    } else {
+        term.write("\nFile '" + file + "' do not exists");
+    }
+    
+}
+
+function handleCommand() {
+    let line = line_buffer.join('').trim().split(' ');
+    let command = line[0];
+    switch(command) {
+        case "troupe": 
+            runTroupe(line.splice(1))
+            break;
+        case "help": 
+            term.write("\nRun one of the following commands: \n\ttroupe <program> \n\tls \n\thelp"); 
+            break;
+        default: 
+            term.write("\nDo not recognise command '" + command + "'. Type 'help' to see options")
+    }
+}
+
 
 function handleNonprintable(code, key) {
     switch (code) {
-        case 13: // Enter
-            //handleCommand(); // should read what is on the line.
-            term.write('\n' + term_prompt);
-            line_buffer.push('\n' + term_prompt);
 
-            if (__getcharCb != null)
-                __getcharCb(line_buffer.reverse());
+        // Enter
+        case 13: 
+        let line_str = line_buffer.join('');
+        cmd_hist.push(line_str);
+        if (line_str.trim() != "") handleCommand();
+        term.write('\n' + term_prompt);
+        cursor_pos = 0;
+        eol = 0;
+        line_buffer = [];
+        break;
 
-            line_buffer = [];
-            cursor_pos = 0;
-            eol = 0;
-            break;
+        // End
+        case 35: 
+        term.write('\x1b[' + (eol - cursor_pos) + 'C');
+        cursor_pos = eol;
+        break;
+        
+        // Home 
+        case 36:           
+        term.write('\x1b[' + cursor_pos + 'D');
+        cursor_pos = 0;
+        break;
 
-        case 35: // End
-            term.write('\x1b[' + (eol - cursor_pos) + 'C');
-            cursor_pos = eol;
-            break;
+        
+        // Left arrow
+        case 37: 
+        if (cursor_pos > 0) {
+            term.write(key);
+            cursor_pos--;
+        }
+        break;
+        
+        // Right arrow
+        case 39: 
+        if (cursor_pos < eol) {
+            term.write(key);
+            cursor_pos++;
+        }
+        break;
 
-        case 36: // Home           
-            term.write('\x1b[' + cursor_pos + 'D');
-            cursor_pos = 0;
-            break;
+        // Backspace
+        case 8: 
+        if (cursor_pos > 0) {
+            cursor_pos--;
+            eol--;
+            line_buffer.splice(cursor_pos, 1);
 
-        case 37: // Left arrow
-            if (cursor_pos > 0) {
-                term.write(key);
-                cursor_pos--;
-            }
-            break;
+            // Backspace in terminal
+            term.write('\b \b');
 
-        case 39: // Right arrow
-            if (cursor_pos < eol) {
-                term.write(key);
-                cursor_pos++;
-            }
-            break;
+            deleteAtCursor();
+        }
+        break;
 
-        case 8: // Backspace
-            if (cursor_pos > 0) {
-                cursor_pos--;
-                eol--;
-                line_buffer.splice(cursor_pos, 1);
+        // Delete
+        case 46: 
+        if (cursor_pos < eol) {
+            eol--;
+            line_buffer.splice(cursor_pos, 1);
 
-                // Backspace in terminal
-                term.write('\b \b');
+            deleteAtCursor();
+        }
+        break;
 
-                deleteAtCursor();
-            }
-            break;
+        // Up arrow
+        case 38:
+        break;
 
-        case 46: // Delete
-            if (cursor_pos < eol) {
-                eol--;
-                line_buffer.splice(cursor_pos, 1);
+        // Down arrow
+        case 40:
+        break;
 
-                deleteAtCursor();
-            }
-            break;
-
+        
+        // Tab
+        case 9:
+        let auto_cor_str = "troupe prog_42.js";
+        term.write(auto_cor_str);
+        line_buffer = line_buffer.concat(auto_cor_str.split(""));
+        cursor_pos += auto_cor_str.length;
+        eol += auto_cor_str.length;
+        break;
+        
         default:
     }
 }
 
 term.on('key', (key, e) => {
     console.log("KeyCode:" + e.keyCode + ", CharCode: " + e.charCode);
-    if (e.charCode != 0)
-        handlePrintable(key);
-    else
-        handleNonprintable(e.keyCode, key);
+    e.charCode != 0 ? handlePrintable(key) : handleNonprintable(e.keyCode, key);
 })
 
 term.open(document.getElementById('div'));
 term.fit();
 window.addEventListener('resize', function () { term.fit(); });
 
-__terminal = term;
-
-function main() {
-    term.write(term_prompt);
-}
-main()
+// start
+term.write(term_prompt);

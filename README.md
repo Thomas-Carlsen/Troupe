@@ -1,6 +1,6 @@
 This is a fork of the [Troupe Programming Language](https://github.com/TroupeLang/Troupe) with the focus of making compiled Troupe programs run in the browser.
 
-> This is still under development
+> This is still in the early development states. Please visit the official repo for more info about the language.
 
 
 

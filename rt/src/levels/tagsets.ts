@@ -1,8 +1,9 @@
-const logger = require('../logger.js').mkLogger('TAGSETS');
+const {mkLogger} = require('../logger');
+const logger = mkLogger('TAGSETS');
 const info = x => logger.info(x)
 const debug = x => logger.debug(x)
 
-import { Level }  from '../Level.js'
+import { Level }  from '../Level'
 
 class TagLevel extends Level {
     isTop: boolean;
@@ -119,4 +120,4 @@ let levels = {
 }
 
 
-export = levels;
+export {levels};

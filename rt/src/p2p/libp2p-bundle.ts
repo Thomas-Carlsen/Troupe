@@ -13,7 +13,7 @@ const Multiplex = require('libp2p-mplex')
 const SECIO = require('libp2p-secio')
 const libp2p = require('libp2p')
 const defaultsDeep = require('@nodeutils/defaults-deep')
-const p2pconfig = require('./p2pconfig.js')
+const p2pconfig = require('./p2pconfig')
 
 const bootstrapers = [
   
@@ -109,4 +109,4 @@ class Node extends libp2p {
   }
 }
 
-module.exports = Node
+export {Node}

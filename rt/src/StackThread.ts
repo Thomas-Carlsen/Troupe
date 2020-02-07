@@ -1,20 +1,9 @@
 'use strict'
-import levels = require ('./options')
-
-
-// const LVal = require('./Lval.js');
-import { ThreadError } from './ThreadError.js'
-
-import colors = require ('colors/safe')
-
-import { StackCallItem } from './StackCallItem.js'
-import { StackGuardItem}  from './StackGuardItem.js'
-
-import { BaseFunction } from './BaseFunction.js'
+import {levels} from './options';
+import { StackCallItem } from './StackCallItem'
 import { Level } from './Level';
 import { StackItem } from './StackItem';
 import { Authority } from './Authority';
-import { HandlerState } from  './SandboxStatus';
 
 let lub = levels.lub;
 

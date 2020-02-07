@@ -1,6 +1,6 @@
 "use strict";
-const assert = require('assert');
-const { spawn } = require('child_process')
+import * as assert from 'assert';
+import { spawn } from 'child_process';
 
 let compiler = null;
 
@@ -557,10 +557,10 @@ function serialize(x, pclev) {
 
 
 
-module.exports = {
-  serialize : serialize,
-  deserialize : deserialize,
-  deserializeAsync : deserializeAsync,
-  stopCompiler: stopCompiler,
-  setRuntimeObj: setRuntimeObj  
-}
+export default { 
+  serialize,
+  deserialize,
+  deserializeAsync,
+  stopCompiler,
+  setRuntimeObj
+};

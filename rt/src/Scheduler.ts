@@ -1,31 +1,30 @@
 'use strict';
-const uuidv4 = require('uuid/v4');
-const process = require('./process.js');
+const uuidv4 =  require('uuid/v4');
+import { ProcessID, pid_equals } from './process';
 
-const BaseFunction = require('./BaseFunction.js').BaseFunction;
-const BaseKont = require('./BaseKont.js')
-const LVal = require('./Lval.js').LVal;
-const Thread = require('./Thread.js').Thread;
-const SandboxStatus = require('./SandboxStatus.js').HandlerState;
-const Authority = require ('./Authority.js').Authority;
-const ThreadError = require('./ThreadError.js').ThreadError;
+import { BaseFunction } from './BaseFunction';
+import { BaseKont } from './BaseKont';
+import { LVal } from './Lval';
+import { Thread } from './Thread';
+import { HandlerState as SandboxStatus } from './SandboxStatus';
+import { Authority } from './Authority';
+import { ThreadError } from './ThreadError';
 
-const __unitbase = require('./UnitBase.js');
+import __unitbase from './UnitBase';
 
-const logger = require('./logger.js').mkLogger('scheduler');
+import { mkLogger } from './logger';
+const logger = mkLogger('scheduler');
 const info = x => logger.info(x)
 const debug = x => logger.debug(x)
 
 
 const STACKDEPTH = 50;
 
-let ProcessID = process.ProcessID;
 
+import { levels} from './options';
 
-const levels = require('./options.js')
+let BOT = levels.BOT;
 
-
-let lub = levels.lub;
 
 let TerminationStatus = {
     OK: 0,
@@ -34,6 +33,19 @@ let TerminationStatus = {
 
 
 class Scheduler {
+    rt_uuid;
+    __funloop;
+    __blocked;
+    __alive;
+    __currentThread;
+    stackcounter;
+    done;
+    halt;
+    __unit;
+    rtObj;
+    __node;
+    __stopWhenAllThreadsAreDone;
+    __stopRuntime;
     constructor(rt_uuid) {        
         this.rt_uuid = rt_uuid;
 
@@ -52,7 +64,7 @@ class Scheduler {
 
 
         this.halt = (arg) => {
-            this.raiseCurrentThreadPCToBlockingLev();
+            this.raiseCurrentThreadPCToBlockingLev(arg);
             let retVal = this.mkCopy(arg);
             this.notifyMonitors ();
 
@@ -65,11 +77,11 @@ class Scheduler {
         // the unit value 
     
         
-        let theUnit = new LVal (__unitbase, levels.BOT);
+        let theUnit = new LVal (__unitbase, BOT);
         this.__unit = theUnit;        
     }
 
-    notifyMonitors (status = TerminationStatus.OK, errstr ) {
+    notifyMonitors (status = TerminationStatus.OK, errstr="" ) {
         
         let ids = Object.keys (this.__currentThread.monitors);
         for ( let i = 0; i < ids.length; i ++ ) {            
@@ -120,7 +132,7 @@ class Scheduler {
     }
 
     mkBase(f,name=null) {
-        return new LVal(new BaseFunction(f,name), levels.BOT);
+        return new LVal(new BaseFunction(f,name), BOT);
     }
 
     initScheduler(node, stopWhenAllThreadsAreDone = false, stopRuntime = () => {}) {
@@ -230,7 +242,7 @@ class Scheduler {
             , args
             , nm
             , levpc
-            , [{lev:levblock, auth:new Authority(levels.BOT)}]
+            , [{lev:levblock, auth:new Authority(BOT)}]
             , new SandboxStatus.NORMAL()
             , this.rtObj );
 
@@ -253,7 +265,7 @@ class Scheduler {
 
     unblockThread(pid) {        
         for (let i = 0; i < this.__blocked.length; i++) {            
-            if (process.pid_equals(this.__blocked[i].tid, pid)) {
+            if (pid_equals(this.__blocked[i].tid, pid)) {
                 this.scheduleThreadT(this.__blocked[i]);
                 this.__blocked.splice(i, 1);                
                 break;
@@ -339,4 +351,4 @@ class Scheduler {
     }
 }
 
-module.exports = Scheduler;
+export {Scheduler};

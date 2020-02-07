@@ -10,6 +10,11 @@ function pid_val_equals (v1, v2) {
 }  
   
 class ProcessID {
+    uuid;
+    pid;
+    node;
+    stringRep;
+    equals;
     constructor(rt_uuid, pid, node) {      
       this.uuid = rt_uuid;
       this.pid = pid;
@@ -27,8 +32,4 @@ class ProcessID {
     }
 }
 
-module.exports = {
-    pid_equals: pid_equals,
-    pid_val_equals: pid_val_equals,
-    ProcessID : ProcessID
-};
+export {pid_equals, pid_val_equals, ProcessID};

@@ -1,25 +1,28 @@
 'use strict'
-const LVal = require('./Lval.js').LVal;
-const Thread = require('./Thread.js').Thread;
-const proc = require('./process.js');
-const logger = require('./logger.js').mkLogger('mbox');
+import { LVal } from './Lval';
+import {mkLogger} from './logger';
+const logger = mkLogger('mbox');
 const debug = x => logger.debug(x)
 
-const SandboxStatus = require('./SandboxStatus.js').HandlerState;
+import { HandlerState as SandboxStatus } from './SandboxStatus';
 
-const levels = require('./options.js');
+import {levels} from './options';
 
 
 
 function Message(msg, fromNodeId, pc) {
     let tuple = [msg, fromNodeId];
-    tuple.isTuple = true; // hack! 2018-10-19: AA
+    tuple["isTuple"] = true; // hack! 2018-10-19: AA
     return new LVal(tuple, pc);
   }
 
 
 
 class MailboxProcessor {
+    sched;
+    levels;
+    mailboxes;
+    rtObj;
     constructor(sched) {
         this.sched = sched;
         this.levels = levels;
@@ -133,7 +136,7 @@ class MailboxProcessor {
                 }
             } else {
                 debug("### 2");
-                function futureMessage() {
+                let futureMessage = function() {
                     debug ("unblocking");
                     iterate(0, messageToCheck);
                 }
@@ -164,4 +167,4 @@ class MailboxProcessor {
     
 }
 
-module.exports = MailboxProcessor;
+export default MailboxProcessor;

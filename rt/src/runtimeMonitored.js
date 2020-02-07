@@ -7,7 +7,7 @@ const { promisify } = require ('util');
 const colors = require ('colors/safe'); //get color and style in your node.js console
 const os = require('os');
 const uuidv4 = require('uuid/v4');
-let yargs = require('yargs');
+const yargs = require('yargs');
 const readline = require('readline').createInterface({
   input: process.stdin,
   output: process.stdout
@@ -15,16 +15,17 @@ const readline = require('readline').createInterface({
 
 // Internal runtime packages
 const ThreadError = require('./ThreadError').ThreadError
-const RtClosure = require('./RtClosure')
+const {RtClosure} = require('./RtClosure')
 const { isListFlagSet, isTupleFlagSet } = require ('./ValuesUtil');
+let logLevel = yargs.argv.debug?'debug':'info';
 const logger = require('./logger').mkLogger('RTM', logLevel);
 // an attempt to modularize the runtime; 2018-07-16; AA
-const Scheduler = require('./Scheduler');
+const {Scheduler} = require('./Scheduler');
 const LVal = require('./Lval').LVal;
 const proc = require('./process');
 
-const MailboxProcessor = require('./MailboxProcessor');
-const NodeManager = require('./NodeManager');
+const MailboxProcessor = require('./MailboxProcessor').default;
+const {NodeManager} = require('./NodeManager');
 const loadLibs = require('./loadLibs');
 const BaseFunction = require('./BaseFunction').BaseFunction;
 const SandboxStatus = require('./SandboxStatus').HandlerState;
@@ -32,7 +33,7 @@ const Authority = require('./Authority').Authority;
 const options = require('./options');
 const Level = require('./Level').Level;
 const __unitbase = require('./UnitBase');
-let SS = require('./serialize')
+let SS = require('./serialize').default;
 let p2p = require('./p2p/p2p')
 
 
@@ -40,9 +41,8 @@ let p2p = require('./p2p/p2p')
 
 
 // log stuff
-let logLevel = yargs.argv.debug?'debug':'info';
 const info = x => logger.info(x)
-const debug = x => logger.debug(x)
+const debug = (x, err = "") => logger.debug(x)
 
 // input stuff
 const readFile = promisify (fs.readFile);
@@ -500,7 +500,7 @@ function rt_sendMessageNochecks (lRecipientPid, message, ret=true) {
 }
 
 let rt_send = mkBase((env, larg) => {
-  raiseCurrentThreadPCToBlockingLev();
+  raiseCurrentThreadPCToBlockingLev(larg.lev);
   assertNormalState("send")
   raiseCurrentThreadPC(larg.lev);
   assertIsNTuple(larg, 2);
@@ -1149,7 +1149,7 @@ function assertNormalState (s) {
   }
 }
 
-function assertDeclassificationAllowed() {
+function assertDeclassificationAllowed(s) {
   if (!__sched.handlerState.declassificationAllowed ()) {
     threadError ("invalid handler state in " + s + ": declassification prohibited in handler pattern matching")
   }
@@ -1526,7 +1526,7 @@ __sched.setRuntimeObject(rtObj);
 
 
 
-function cleanup (cb) {
+function cleanup (cb = ()=>{}) {
   readline.close();                    
   SS.stopCompiler(); 
   if (__p2pRunning) {    

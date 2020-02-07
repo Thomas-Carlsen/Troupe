@@ -1,4 +1,5 @@
-import levels = require ( './levels/tagsets.js');
-export = levels 
+import {levels} from './levels/tagsets.js';
+
+export {levels};
 
 

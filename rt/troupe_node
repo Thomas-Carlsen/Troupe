@@ -1,4 +1,4 @@
 
 
 #node built/troupe.js -f $1 --localonly
-node built/troupe.js -f "Test Files/42.js" --localonly
+node built/troupe.js -f "programs/prog_42_commonjs.js" --localonly

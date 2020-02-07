@@ -1,4 +1,8 @@
 class RtClosure {
+  env;
+  fun;
+  namespace;
+  stringRep;
   constructor(e, p, f) {
     this.env = e;
     this.fun = f;
@@ -9,4 +13,4 @@ class RtClosure {
   }
 }
 
-module.exports = RtClosure;
+export {RtClosure};

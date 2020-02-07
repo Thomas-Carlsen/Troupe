@@ -1,8 +1,8 @@
 'use strict';
 
-const fs = require('fs')
+import { writeFileSync } from 'fs';
 
-const args = require('yargs').argv;
+import { argv as args } from 'yargs';
 
 let outfile = args.outfile
 if (!outfile) {
@@ -11,13 +11,13 @@ if (!outfile) {
 }
 
 
-const PeerId = require("peer-id")
+import { create } from "peer-id";
 
-PeerId.create((err,id) => {
+create((err,id) => {
     const obj = id.toJSON();
     console.log("Created key with id:", obj.id);
 
     const s = JSON.stringify(obj);
-    fs.writeFileSync (outfile, s, 'utf8');
+    writeFileSync (outfile, s, 'utf8');
 })
 

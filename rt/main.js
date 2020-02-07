@@ -1,4 +1,5 @@
-import { Top as prog_42} from "./programs/prog_42.js";
+import { Top as prog_42} from "./programs/prog_42_es6.js";
+//import { runtime, start } from "./built/runtimeMonitored";
 
 const progs = {
     "prog_42.js": prog_42
@@ -69,6 +70,9 @@ function runTroupe(args) {
     if (progs[file] != undefined) {
         let res = new progs[file](rt);
         res.main();
+        /*
+        let top =  new progs[file](runtime);
+        start(top);*/
     } else {
         term.write("\nFile '" + file + "' do not exists");
     }
@@ -181,7 +185,7 @@ function handleNonprintable(code, key) {
 }
 
 term.on('key', (key, e) => {
-    console.log("KeyCode:" + e.keyCode + ", CharCode: " + e.charCode);
+    //console.log("KeyCode:" + e.keyCode + ", CharCode: " + e.charCode);
     e.charCode != 0 ? handlePrintable(key) : handleNonprintable(e.keyCode, key);
 })
 

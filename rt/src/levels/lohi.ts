@@ -1,12 +1,18 @@
-const Level = require('../Level.js');
+import {Level} from '../Level';
+
+let LOW = new Level(0);
+let HIGH = new Level(1);
 
 let levels = {
-    LOW: new Level(0),
-    HIGH: new Level(1)
+    LOW: LOW,
+    HIGH: HIGH,
+    BOT: LOW,
+    TOP: HIGH,
+    lub: null,
+    glb: null,
+    flowsTo: null,
+    mkLevel: null
 };
-
-levels.BOT = levels.LOW;
-levels.TOP = levels.HIGH;
 
 levels.LOW.stringRep = () => "{public}"
 
@@ -42,4 +48,4 @@ levels.mkLevel = (x) => {
     }
 }
 
-module.exports = levels;
+export default levels;

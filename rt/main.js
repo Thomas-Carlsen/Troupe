@@ -57,7 +57,7 @@ function deleteAtCursor() {
     term.write('\x1b[u');
 }
 
-function runTroupe(args) {
+async function runTroupe(args) {
 
     // fake object to test program
     let rt = {};
@@ -66,43 +66,66 @@ function runTroupe(args) {
     rt.ret = (a) => {term.write("\n" + a);};
     rt.mkValPos = (a, b) => {return a;};
 
-    let file = args[0];
+    // check if args[0] exists somehow and make a if condition
+    /*
+    const file = await import(args[0]);
+    let Top = file.Top;
+    let top = new Top(rt);
+    top.main()
+    */
+    
+    // importing the program file
+    await import(args[0])
+        .then(module => {
+            let Top = module.Top;
+            let top = new Top(rt);
+            top.main();
+        })
+        .catch(err => {
+            term.write("\nFile '" + file + "' do not exists");
+        });
+
+    /*
+    
     if (progs[file] != undefined) {
+
         let res = new progs[file](rt);
         res.main();
+
         /*
         let top =  new progs[file](runtime);
-        start(top);*/
+        start(top);
     } else {
         term.write("\nFile '" + file + "' do not exists");
-    }
+    }*/
     
 }
 
-function handleCommand() {
+async function handleCommand(line_str) {
+    if (line_str.trim() == "") return;
     let line = line_buffer.join('').trim().split(' ');
     let command = line[0];
     switch(command) {
         case "troupe": 
-            runTroupe(line.splice(1))
+            await runTroupe(line.splice(1));
             break;
         case "help": 
             term.write("\nRun one of the following commands: \n\ttroupe <program> \n\tls \n\thelp"); 
             break;
         default: 
-            term.write("\nDo not recognise command '" + command + "'. Type 'help' to see options")
+            term.write("\nDo not recognise command '" + command + "'. Type 'help' to see options");
     }
 }
 
 
-function handleNonprintable(code, key) {
+async function handleNonprintable(code, key) {
     switch (code) {
 
         // Enter
         case 13: 
         let line_str = line_buffer.join('');
         cmd_hist.push(line_str);
-        if (line_str.trim() != "") handleCommand();
+        await handleCommand(line_str);
         term.write('\n' + term_prompt);
         cursor_pos = 0;
         eol = 0;
@@ -173,20 +196,24 @@ function handleNonprintable(code, key) {
         
         // Tab
         case 9:
-        let auto_cor_str = "troupe prog_42.js";
-        term.write(auto_cor_str);
-        line_buffer = line_buffer.concat(auto_cor_str.split(""));
-        cursor_pos += auto_cor_str.length;
-        eol += auto_cor_str.length;
-        break;
+            let auto_cor_str = "troupe ./programs/prog_42_es6.js";
+            term.write(auto_cor_str);
+            line_buffer = line_buffer.concat(auto_cor_str.split(""));
+            cursor_pos += auto_cor_str.length;
+            eol += auto_cor_str.length;
+            break;
         
         default:
     }
 }
 
-term.on('key', (key, e) => {
+async function handleInput(key, e) {
     //console.log("KeyCode:" + e.keyCode + ", CharCode: " + e.charCode);
-    e.charCode != 0 ? handlePrintable(key) : handleNonprintable(e.keyCode, key);
+    await e.charCode != 0 ? handlePrintable(key) : handleNonprintable(e.keyCode, key);
+};
+
+term.on('key', (key, e) => {
+    handleInput(key, e);
 })
 
 term.open(document.getElementById('div'));

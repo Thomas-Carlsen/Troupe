@@ -1,6 +1,5 @@
 import { StackItem } from "./StackItem";
 import { Level } from "./Level";
-const levels = require('./options').levels;
 
 
 export class StackCallItem extends StackItem {

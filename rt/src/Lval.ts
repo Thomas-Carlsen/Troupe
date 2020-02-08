@@ -1,4 +1,4 @@
-import {levels} from './options';
+import levels from './options';
 import { Level } from "./Level";
 
 
@@ -11,13 +11,14 @@ export class LVal {
     constructor(v:any, l:Level, tlev:Level = null, posInfo:string = null) {
         this.val = v;
         this.lev = l;
-        this.tlev = tlev == null ? l : tlev;
+
+        this.tlev = tlev == null?l:tlev;
         this.posInfo = posInfo;
 
         this.stringRep = (omitLevels = false, taintRef = null) => {
             let t = "";
-            if (this.val.stringRep != undefined) { // 2018-05-17; AA; ugly hack!
-                t = this.val.stringRep(omitLevels, taintRef)
+            if (v.stringRep != undefined) { // 2018-05-17; AA; ugly hack!
+                t = v.stringRep(omitLevels, taintRef)
             } else {
                 if (typeof v === 'string') {
                     t = "\"" + v.toString() + "\""

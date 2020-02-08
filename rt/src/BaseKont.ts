@@ -1,4 +1,4 @@
-export class BaseKont {
+class BaseKont {
     env;
     fun;
     constructor(f) {
@@ -7,3 +7,5 @@ export class BaseKont {
     }
   }
 
+  
+export default BaseKont;

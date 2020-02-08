@@ -1,0 +1,10 @@
+let val pid = spawn ( fn () =>
+                         rcv({}, {secret}, authority,
+                                 [ hn 1 => adv 1 
+                                 , hn x => adv 2
+                                 ])
+                    )
+    val secret = 42 raisedTo {secret}
+in send (pid, secret)
+end
+                           

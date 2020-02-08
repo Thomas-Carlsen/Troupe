@@ -1,8 +1,7 @@
 'use strict'
-import { readFile } from 'fs';
+const fs = require('fs');
 
 import {mkLogger} from './logger';
-
 const logger = mkLogger('lib');
 const info = x => logger.info(x)
 const debug = x => logger.debug(x)
@@ -31,7 +30,7 @@ function loadLibsAsync(libs, obj, cb, rtObj) {
       
 
       // 2. Load the file -- note that this is an asynchronous operation
-      readFile(filename, 'utf8', (err, input) => {
+      fs.readFile(filename, 'utf8', (err, input) => {
         
         // File read operation finished; we are now in the callbacak that has
         // been asynchronously called by the node runtime 
@@ -94,4 +93,6 @@ function loadLibsAsync(libs, obj, cb, rtObj) {
   iterateAsync (0);
 }
 
-export {loadLibsAsync}
+module.exports = {
+  loadLibsAsync: loadLibsAsync
+}

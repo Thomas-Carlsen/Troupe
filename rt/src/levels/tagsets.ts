@@ -1,4 +1,4 @@
-const {mkLogger} = require('../logger');
+import {mkLogger} from '../logger';
 const logger = mkLogger('TAGSETS');
 const info = x => logger.info(x)
 const debug = x => logger.debug(x)
@@ -120,4 +120,4 @@ let levels = {
 }
 
 
-export {levels};
+export default levels;

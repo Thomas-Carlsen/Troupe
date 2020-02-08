@@ -32,4 +32,4 @@ class ProcessID {
     }
 }
 
-export {pid_equals, pid_val_equals, ProcessID};
+export default {pid_equals, pid_val_equals, ProcessID};

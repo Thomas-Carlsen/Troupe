@@ -2,7 +2,7 @@
 // this library or this way of doing things, but this still beats console
 // outputs. 
 
-import { createLogger, format, transports } from 'winston';
+const { createLogger, format, transports } = require('winston');
 const { combine, timestamp, label, printf } = format;
 
 const myFormat = printf(info => {
@@ -12,7 +12,7 @@ const myFormat = printf(info => {
 
 const console = new transports.Console();
 
-const mkLogger = (l, level='info') => createLogger({
+export const mkLogger = (l, level='info') => createLogger({
   level : level, // comment out this file to remove debug messages
   format: combine(
     format.colorize(),
@@ -25,7 +25,6 @@ const mkLogger = (l, level='info') => createLogger({
   transports: [console]
 });
 
-export { mkLogger };
 
 
 // const log1 = mkLogger("logger 1");

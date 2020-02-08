@@ -1,18 +1,18 @@
 'use strict';
-const uuidv4 =  require('uuid/v4');
-import { ProcessID, pid_equals } from './process';
+const uuidv4 = require('uuid/v4');
+import process from './process';
 
-import { BaseFunction } from './BaseFunction';
-import { BaseKont } from './BaseKont';
-import { LVal } from './Lval';
-import { Thread } from './Thread';
-import { HandlerState as SandboxStatus } from './SandboxStatus';
-import { Authority } from './Authority';
-import { ThreadError } from './ThreadError';
+const BaseFunction = require('./BaseFunction').BaseFunction;
+const BaseKont = require('./BaseKont')
+const LVal = require('./Lval').LVal;
+const Thread = require('./Thread').Thread;
+const SandboxStatus = require('./SandboxStatus').HandlerState;
 
-import __unitbase from './UnitBase';
+const ThreadError = require('./ThreadError').ThreadError;
 
-import { mkLogger } from './logger';
+const __unitbase = require('./UnitBase');
+
+import {mkLogger} from './logger';
 const logger = mkLogger('scheduler');
 const info = x => logger.info(x)
 const debug = x => logger.debug(x)
@@ -20,11 +20,13 @@ const debug = x => logger.debug(x)
 
 const STACKDEPTH = 50;
 
+let ProcessID = process.ProcessID;
 
-import { levels} from './options';
 
-let BOT = levels.BOT;
+import levels from './options';
 
+
+let lub = levels.lub;
 
 let TerminationStatus = {
     OK: 0,
@@ -39,8 +41,6 @@ class Scheduler {
     __alive;
     __currentThread;
     stackcounter;
-    done;
-    halt;
     __unit;
     rtObj;
     __node;
@@ -56,31 +56,32 @@ class Scheduler {
         this.__currentThread = null; // current thread object
 
         this.stackcounter = 0;
-
-        this.done = (arg) =>  {            
-            this.notifyMonitors();
-            delete this.__alive [this.currentThreadId.val.toString()];              
-        }
-
-
-        this.halt = (arg) => {
-            this.raiseCurrentThreadPCToBlockingLev(arg);
-            let retVal = this.mkCopy(arg);
-            this.notifyMonitors ();
-
-            delete this.__alive[this.currentThreadId.val.toString()];            
-            console.log(">>> Main thread finished with value:", retVal.stringRep());
-        }
-
-
-
+                
         // the unit value 
-    
-        
-        let theUnit = new LVal (__unitbase, BOT);
-        this.__unit = theUnit;        
+        this.__unit = new LVal (__unitbase, levels.BOT);
     }
 
+    done  (arg)  {            
+        this.notifyMonitors();
+        delete this.__alive [this.currentThreadId.val.toString()];              
+    }
+
+
+    halt  (arg, persist=null)  {
+        this.raiseCurrentThreadPCToBlockingLev();
+        let retVal = this.mkCopy(arg);
+        this.notifyMonitors ();
+
+        delete this.__alive[this.currentThreadId.val.toString()];            
+        console.log(">>> Main thread finished with value:", retVal.stringRep());
+        if (persist) {
+            this.rtObj.persist (retVal, persist )
+            console.log ("Saved the result value in file", persist)
+        }
+    }
+
+
+    
     notifyMonitors (status = TerminationStatus.OK, errstr="" ) {
         
         let ids = Object.keys (this.__currentThread.monitors);
@@ -101,7 +102,7 @@ class Scheduler {
         this.__currentThread.raiseCurrentThreadPC(l);
     }
     
-    raiseCurrentThreadPCToBlockingLev (l) {        
+    raiseCurrentThreadPCToBlockingLev (l="") {        
         this.__currentThread.raiseCurrentThreadPCToBlockingLev(l)
     }
 
@@ -132,7 +133,7 @@ class Scheduler {
     }
 
     mkBase(f,name=null) {
-        return new LVal(new BaseFunction(f,name), BOT);
+        return new LVal(new BaseFunction(f,name), levels.BOT);
     }
 
     initScheduler(node, stopWhenAllThreadsAreDone = false, stopRuntime = () => {}) {
@@ -143,13 +144,6 @@ class Scheduler {
     }
 
 
-    get ret() {
-        return this.__currentThread.ret;
-    }
-
-    setret(r) {
-        this.__currentThread.ret = new LVal(r, this.pc);
-    }
 
     
     /** 
@@ -207,7 +201,7 @@ class Scheduler {
     
 
     returnInThread (arg) {        
-        this.__currentThread.callStackRet(arg);
+        this.__currentThread.returnInThread(arg);
         this.stepThread ();
     }
 
@@ -229,10 +223,11 @@ class Scheduler {
         return new LVal(pidObj, pcArg);
     }
 
-    scheduleNewThreadAtLevel (thefun, args, nm, levpc, levblock, ismain = false) {
+    scheduleNewThreadAtLevel (thefun, args, nm, levpc, levblock, ismain = false, persist=null) {
         let newPid = this.createNewProcessIDAtLevel(levpc);
 
-        let halt = ismain ?  this.halt : this.done;
+        let halt = ismain ?  (arg)=> { this.halt (arg, persist) } : 
+                             (arg) => { this.done (arg) };
         
         
         let t = new Thread 
@@ -242,7 +237,7 @@ class Scheduler {
             , args
             , nm
             , levpc
-            , [{lev:levblock, auth:new Authority(BOT)}]
+            , levblock
             , new SandboxStatus.NORMAL()
             , this.rtObj );
 
@@ -265,7 +260,7 @@ class Scheduler {
 
     unblockThread(pid) {        
         for (let i = 0; i < this.__blocked.length; i++) {            
-            if (pid_equals(this.__blocked[i].tid, pid)) {
+            if (process.pid_equals(this.__blocked[i].tid, pid)) {
                 this.scheduleThreadT(this.__blocked[i]);
                 this.__blocked.splice(i, 1);                
                 break;
@@ -306,6 +301,7 @@ class Scheduler {
     \*****************************************************************************/
 
     loop() {
+        // debug (`running scheduler loop with ${this.__funloop.length} many threads`)
         const $$LOOPBOUND = 5000;
 
         for (let $$loopiter = 0; $$loopiter < $$LOOPBOUND && (this.__funloop.length > 0); $$loopiter++) {
@@ -351,4 +347,4 @@ class Scheduler {
     }
 }
 
-export {Scheduler};
+module.exports = Scheduler;

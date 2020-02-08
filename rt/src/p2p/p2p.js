@@ -60,14 +60,14 @@ the libp2p).
 
 // LOGGING AND DEBUGGING 
 
-import { argv } from 'yargs';
+let yargs = require('yargs');
 
 
-let logLevel = argv.debugp2p?'debug':'info';
+let logLevel = yargs.argv.debugp2p?'debug':'info';
 
 
-
-const logger = require('../logger').mkLogger('p2p',logLevel);
+import {mkLogger} from '../logger';
+const logger = mkLogger('p2p',logLevel);
 const info = x => logger.info(x)
 const debug = x => logger.debug(x)
 const error = x => logger.error(x);
@@ -85,26 +85,26 @@ function promisify01 (f) {
 
 
 // 
-import { rendezvousServer } from './p2pconfig';
-import pull, { map, drain } from 'pull-stream';
-import { createFromJSON as _createFromJSON, create, createFromB58String } from "peer-id";
-import PeerInfo from "peer-info";
-import { Node } from "./libp2p-bundle";
-import multiaddr from 'multiaddr';
+const p2pconfig = require('./p2pconfig')
+const pull = require('pull-stream')
+const PeerId = require("peer-id")
+const PeerInfo = require("peer-info")
+const Node = require("./libp2p-bundle")
+const multiaddr = require('multiaddr')
 
 
 
 // const ffp = require('find-free-port');
 
-import Pushable from 'pull-pushable';
-import uuidv4 from 'uuid/v4';
+const Pushable = require('pull-pushable')
+const uuidv4 = require('uuid/v4');
 
 // const ProgressBar = require('progress');
 
 // 2018-09-20: aa: promisification
-import { promisify } from 'util';
-const createFromJSON = promisify (_createFromJSON);
-const createPeerId = promisify (create);
+const { promisify } = require ('util')
+const createFromJSON = promisify (PeerId.createFromJSON);
+const createPeerId = promisify (PeerId.create);
 
 
 const MessageType = {
@@ -141,7 +141,7 @@ async function loadPeerId(nodeId) {
     
     
     // _peerInfo.multiaddrs.add(multiaddr('/p2p-websocket-star'));
-    _peerInfo.multiaddrs.add(rendezvousServer);    
+    _peerInfo.multiaddrs.add(p2pconfig.rendezvousServer);    
     _peerInfo.multiaddrs.add(`/ip4/0.0.0.0/tcp/0`); 
     return _peerInfo;
 }
@@ -183,15 +183,15 @@ function TroupeP2P (_rt, _peerInfo) {
         const p = Pushable()
         pull(
             p,
-            map(JSON.stringify),
+            pull.map(JSON.stringify),
             conn);
 
         _nodeTable[idKey] = p;
 
         pull(
             conn,
-            map(JSON.parse),
-            drain(
+            pull.map(JSON.parse),
+            pull.drain(
                 (x) => { 
                     // debug (`DRAIN: ${peerInfo.isConnected()}`)
                     // peerInfo.multiaddrs.forEach( m => debug (m.toString()));
@@ -275,7 +275,7 @@ function TroupeP2P (_rt, _peerInfo) {
     
     const RETRY_TIMEOUTS = [50,100,200,400,800,1600,3200,6400,10000]
     function dial (id) {
-        const peerId = createFromB58String(id);     
+        const peerId = PeerId.createFromB58String(id);     
         debug (`looking for peer with the id ${id}`)
 
         
@@ -319,10 +319,18 @@ function TroupeP2P (_rt, _peerInfo) {
 
             function tryFindPeer ()  {
                 debug (`>> tryFindPeer ${nPeers()}`)
+                if (_node.peerBook.has(peerId)) {
+                  let _pInfo = _node.peerBook.get(peerId)
+                  DIAL (_pInfo);
+                  return;
+                }
+                
             
                 debug ("Calling find Peer ")
                 // _node.peerRouting.findPeer (peerId, {maxTimeout:2000}, (err, _pInfo) => {
                 // _node.dial(peerId, (err, conn) => {
+
+
                _node.peerRouting.findPeer (peerId, (err, _pInfo) => {                    
                     if (!err) {
                         debug ("Find Peer succeeded");
@@ -587,10 +595,13 @@ async function startp2p(nodeId, rt) {
 
 
 
-export const startp2p = startp2p;
-export function spawnp2p(arg1, arg2) { return _troupeP2P.spawnp2p(arg1, arg2); }
-export function sendp2p(arg1, arg2, arg3) { return _troupeP2P.sendp2p(arg1, arg2, arg3); }
-export function whereisp2p(arg1, arg2) { return _troupeP2P.whereisp2p(arg1, arg2); }
-export function stopp2p(cb) {
-    _troupeP2P.stop(cb);
+module.exports = {
+    startp2p: startp2p,
+    spawnp2p: (arg1, arg2) => _troupeP2P.spawnp2p(arg1, arg2),
+    sendp2p: (arg1, arg2, arg3) => _troupeP2P.sendp2p(arg1, arg2, arg3),
+    whereisp2p: (arg1, arg2) => _troupeP2P.whereisp2p (arg1, arg2),
+    stopp2p: (cb) => {
+            _troupeP2P.stop(cb)
+        }
+    
 }

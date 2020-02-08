@@ -9,9 +9,11 @@ class Node {
 class NodeManager {   
     localNode;
     levels;
-    constructor (levels) {
+    aliases;
+    constructor (levels, aliases) {
         this.localNode = null;
         this.levels = levels;
+        this.aliases = aliases
     }
 
     setLocalHostPort (h)  {
@@ -27,6 +29,11 @@ class NodeManager {
     }
 
     getNode(nodeName) {
+        if (nodeName.startsWith ("@")) {
+            nodeName = this.aliases[nodeName.substring(1)];
+        }
+        // TODO: error handling in case aliases are not available; 2020-01-31
+        
         return new Node (nodeName);        
     }
 

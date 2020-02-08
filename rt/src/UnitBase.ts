@@ -1,3 +1,3 @@
-const theBaseUnit = { stringRep: () => "()" } ;
+let theBaseUnit = { stringRep: () => "()" } ;
 
-export default {theBaseUnit};
+module.exports = theBaseUnit;

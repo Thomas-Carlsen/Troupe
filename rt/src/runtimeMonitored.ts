@@ -11,29 +11,30 @@ const readline = require('readline').createInterface({
   input: process.stdin,
   output: process.stdout
 })
-
+const { promisify } = require ('util');
 
 // Internal runtime modules
-const ThreadError = require('./ThreadError').ThreadError
-const RtClosure = require('./RtClosure')
-const { isListFlagSet, isTupleFlagSet } = require ('./ValuesUtil');
-const { promisify } = require ('util');
+import {RtClosure} from './RtClosure';
+import { isListFlagSet, isTupleFlagSet } from './ValuesUtil';
 import {mkLogger} from './logger';
 // an attempt to modularize the runtime; 2018-07-16; AA
 //
-const Scheduler = require('./Scheduler');
-const LVal = require('./Lval').LVal;
+import Scheduler from './Scheduler';
+import {LVal} from './Lval';
 import proc from './process';
-const MailboxProcessor = require('./MailboxProcessor');
+import {MailboxProcessor} from './MailboxProcessor'
 import {NodeManager} from './NodeManager';
-const loadLibs = require('./loadLibs');
-const BaseFunction = require('./BaseFunction').BaseFunction;
-const SandboxStatus = require('./SandboxStatus').HandlerState;
+import loadLibs from './loadLibs';
+import {BaseFunction} from './BaseFunction';
+import {HandlerState as SandboxStatus } from './SandboxStatus';
 // const levels = require('./levels/lohi.js');
-const Authority = require('./Authority').Authority;
+import {Authority} from './Authority';
 import options from './options';
-const Level = require('./Level').Level;
-
+import {Level} from './Level';
+import {theBaseUnit as __unitbase} from './UnitBase';
+let SS = require('./serialize')
+// let WS = require('./webserver.js')
+let p2p = require('./p2p/p2p')
 
 
 class RtEnv {
@@ -97,11 +98,7 @@ const glb = levels.glb;
 const flowsTo = levels.flowsTo;
 
 let ProcessID = proc.ProcessID;
-const __unitbase = require('./UnitBase');
-let SS = require('./serialize')
-// let WS = require('./webserver.js')
 
-let p2p = require('./p2p/p2p')
 
 
 const __sched = new Scheduler(rt_uuid);
@@ -166,6 +163,7 @@ async function spawnAtNode(nodeid, f) {
 
   // TODO: 2018-09-24: AA: do the information flow check
 
+  // todo-api: localhost/../serialize
   let { data, level } = SS.serialize(f, lub(__sched.pc, nodeid.lev));
 
   let trustLevel = nodeTrustLevel (node.nodeId);
@@ -191,6 +189,7 @@ async function spawnAtNode(nodeid, f) {
 
   try {
     let body1 = await p2p.spawnp2p(node.nodeId, data);
+    // todo-api: localhost/../serialize
     let body = await SS.deserializeAsync ( nodeTrustLevel(node.nodeId) , body1)
     let pid = new ProcessID(body.val.uuid, body.val.pid, body.val.node);
     theThread.returnInThread (new LVal(pid, body.lev));
@@ -232,6 +231,7 @@ async function spawnFromRemote(jsonObj, fromNode) {
 
   let nodeLev = nodeTrustLevel (fromNode);
   
+  // todo-api: localhost/../serialize
   let lf = await SS.deserializeAsync(nodeLev, jsonObj)
   let f = lf.val;
   let newPid = 
@@ -246,6 +246,7 @@ async function spawnFromRemote(jsonObj, fromNode) {
   // 2018-09-19: AA: because we need to send some info back, we have to invoke
   // serialization.
 
+  // todo-api: localhost/../serialize
   let serObj = SS.serialize ( newPid, levels.BOT ).data
   __sched.resumeLoopAsync();
   return (serObj);
@@ -408,6 +409,7 @@ let rt_spawn = mkBase((env, larg) => {
 
 
 function persist (obj, path) {
+  // todo-api: localhost/../serialize
   let jsonObj = SS.serialize(obj, __sched.pc).data;
   fs.writeFileSync(path, JSON.stringify(jsonObj));  
 }
@@ -430,6 +432,7 @@ let rt_restore = mkBase((env, arg) => {
 
   (async () => {
     let jsonStr = await fs.promises.readFile("./out/saved." + file.val + ".json");
+    // todo-api: localhost/../serialize
     let data = await SS.deserializeAsync(levels.TOP, JSON.parse(jsonStr));
     theThread.returnInThread(data);
     __sched.scheduleThreadT(theThread);
@@ -450,6 +453,7 @@ let rt_restore = mkBase((env, arg) => {
  *    The node identity of the sender node
  */
 async function receiveFromRemote(pid, jsonObj, fromNode) {
+  // todo-api: localhost/../serialize
   let data = await SS.deserializeAsync ( nodeTrustLevel(fromNode)  , jsonObj)
   // debug ("* rt receiveFromremote * " + fromNode);
 
@@ -478,6 +482,7 @@ function sendMessageToRemote(toPid, message) {
   let pid = toPid.pid;
   // debug ("* rt *", toPid, message);
 
+  // todo-api: localhost/../serialize
   let {data, level} = SS.serialize(new LVal(message, __sched.pc), __sched.pc);
   let trustLevel = nodeTrustLevel (node);
 
@@ -935,6 +940,7 @@ async function whereisFromRemote(k) {
   // TODO: 2018-10-20: make use of the levels as they were
   // recorded during the registration (instead of the bottom here )
   if (__theRegister[k]) {
+    // todo-api: localhost/../serialize
     let serObj = SS.serialize (__theRegister[k], levels.BOT).data
     return serObj
   }  
@@ -973,6 +979,7 @@ let rt_whereis = mkBase((env, arg) => {
     (async () => {     
         try {
           let body1 = await p2p.whereisp2p (n, k);
+          // todo-api: localhost/../serialize
           let body = await SS.deserializeAsync ( nodeTrustLevel(n), body1 );
           let pid = new ProcessID(body.val.uuid, body.val.pid, body.val.node);
 
@@ -1017,7 +1024,7 @@ let rt_adv = mkBase(baseDisclose)
 function rt_setret(namespace, kf, e) {
   // assertIsEnv(e);
   let r = new RtClosure(e, namespace, kf);
-  __sched.setret(r);
+  //__sched.setret(r); //todo - tc: this method is not declared in Scheduler
 }
 
 function rt_mkLabel(x) {
@@ -1619,7 +1626,8 @@ __sched.setRuntimeObject(rtObj);
 
 
 function cleanup (cb = () => {} ) {
-  readline.close();                    
+  readline.close();
+  // todo-api: localhost/../serialize                    
   SS.stopCompiler(); 
   if (__p2pRunning) {    
     p2p.stopp2p((err) =>{
@@ -1644,6 +1652,7 @@ process.on('SIGINT', () =>{
 })
 
 async function start(f) {
+  // todo-api: localhost/../serialize
   SS.setRuntimeObj(rtObj);
   // debug ("runing with uuid:", rt_uuid)
 

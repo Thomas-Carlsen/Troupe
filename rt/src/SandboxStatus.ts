@@ -48,9 +48,11 @@ class InSandboxState extends NormalState {
     }
 }
 
-export const HandlerState = { 
+let HandlerState = { 
     NORMAL : NormalState,
     INHANDLER : InHandlerState,
     INSANDBOX : InSandboxState
-}
+};
+
+export {HandlerState}; 
 

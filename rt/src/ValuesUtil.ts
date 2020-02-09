@@ -1,6 +1,6 @@
 
 
-function isListFlagSet (x) {
+export function isListFlagSet (x) {
 
   return (x.isList == true )
   /*
@@ -11,13 +11,8 @@ function isListFlagSet (x) {
 }
 
 
-function isTupleFlagSet (x) {
+export function isTupleFlagSet (x) {
   // return true;
   return (x.isTuple == true)
 }
 
-
-module.exports = {
-    isListFlagSet : isListFlagSet,
-    isTupleFlagSet : isTupleFlagSet
-}

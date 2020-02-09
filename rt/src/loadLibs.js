@@ -93,6 +93,4 @@ function loadLibsAsync(libs, obj, cb, rtObj) {
   iterateAsync (0);
 }
 
-module.exports = {
-  loadLibsAsync: loadLibsAsync
-}
+export default {loadLibsAsync}

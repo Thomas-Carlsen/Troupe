@@ -13,4 +13,4 @@ class RtClosure {
   }
 }
 
-module.exports = RtClosure;
+export {RtClosure};

@@ -6,11 +6,10 @@ const BaseFunction = require('./BaseFunction').BaseFunction;
 const BaseKont = require('./BaseKont')
 const LVal = require('./Lval').LVal;
 const Thread = require('./Thread').Thread;
-const SandboxStatus = require('./SandboxStatus').HandlerState;
+import {HandlerState as SandboxStatus } from './SandboxStatus';
 
 const ThreadError = require('./ThreadError').ThreadError;
-
-const __unitbase = require('./UnitBase');
+import {theBaseUnit as __unitbase} from './UnitBase';
 
 import {mkLogger} from './logger';
 const logger = mkLogger('scheduler');
@@ -48,15 +47,11 @@ class Scheduler {
     __stopRuntime;
     constructor(rt_uuid) {        
         this.rt_uuid = rt_uuid;
-
         this.__funloop = new Array()
         this.__blocked = new Array()
         this.__alive = {} // new Set();
-        
         this.__currentThread = null; // current thread object
-
         this.stackcounter = 0;
-                
         // the unit value 
         this.__unit = new LVal (__unitbase, levels.BOT);
     }
@@ -347,4 +342,4 @@ class Scheduler {
     }
 }
 
-module.exports = Scheduler;
+export default Scheduler;

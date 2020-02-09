@@ -5,7 +5,7 @@ import {mkLogger} from './logger';
 const logger = mkLogger('mbox');
 const debug = x => logger.debug(x)
 
-const SandboxStatus = require('./SandboxStatus').HandlerState;
+import {HandlerState as SandboxStatus } from './SandboxStatus';
 
 import levels from './options';
 
@@ -168,4 +168,4 @@ class MailboxProcessor {
     
 }
 
-module.exports = MailboxProcessor;
+export {MailboxProcessor};

@@ -1,0 +1,11 @@
+{
+    "extends": "./tsconfig.base.json",
+    "compilerOptions": {
+        "outDir": "./built_web",
+        "module": "esnext",
+        "target": "es6"
+    },
+    "include": [
+        "./src/**/*"
+    ]
+}

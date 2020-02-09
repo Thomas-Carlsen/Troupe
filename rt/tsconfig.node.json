@@ -1,8 +1,8 @@
 {
+    "extends": "./tsconfig.base.json",
     "compilerOptions": {
         "outDir": "./built",
-        "allowJs": true,
-         "moduleResolution": "node",
+        "moduleResolution": "node",
         "module": "commonjs",
         "target": "ES2017"
     },

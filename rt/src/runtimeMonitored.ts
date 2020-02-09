@@ -1,10 +1,40 @@
 'use strict'
+// External modules
 const assert = require('assert');
 const request = require('request');
-const ThreadError = require('./ThreadError').ThreadError
 const fs = require('fs');
+const os = require('os');
+const colors = require ('colors/safe')
+const uuidv4 = require('uuid/v4');
+const yargs = require('yargs');
+const readline = require('readline').createInterface({
+  input: process.stdin,
+  output: process.stdout
+})
 
+
+// Internal runtime modules
+const ThreadError = require('./ThreadError').ThreadError
 const RtClosure = require('./RtClosure')
+const { isListFlagSet, isTupleFlagSet } = require ('./ValuesUtil');
+const { promisify } = require ('util');
+import {mkLogger} from './logger';
+// an attempt to modularize the runtime; 2018-07-16; AA
+//
+const Scheduler = require('./Scheduler');
+const LVal = require('./Lval').LVal;
+import proc from './process';
+const MailboxProcessor = require('./MailboxProcessor');
+import {NodeManager} from './NodeManager';
+const loadLibs = require('./loadLibs');
+const BaseFunction = require('./BaseFunction').BaseFunction;
+const SandboxStatus = require('./SandboxStatus').HandlerState;
+// const levels = require('./levels/lohi.js');
+const Authority = require('./Authority').Authority;
+import options from './options';
+const Level = require('./Level').Level;
+
+
 
 class RtEnv {
   constructor() {
@@ -13,42 +43,23 @@ class RtEnv {
 }
 
 
-
-
-const { isListFlagSet, isTupleFlagSet } = require ('./ValuesUtil');
-
-
-const { promisify } = require ('util')
 const readFile = promisify (fs.readFile);
 
-const colors = require ('colors/safe')
 
-const os = require('os');
-
-const uuidv4 = require('uuid/v4');
 const rt_uuid = uuidv4();
-
-let yargs = require('yargs');
 
 
 let logLevel = yargs.argv.debug?'debug':'info';
 
-import {mkLogger} from './logger';
+
 const logger = mkLogger('RTM', logLevel);
 
-
+//logs
 const info = x => logger.info(x)
 const debug = (x, err="") => logger.debug(x)
 
-const readline = require('readline').createInterface({
-  input: process.stdin,
-  output: process.stdout
-})
-
 const lineBuffer = [];
 const readlineCallbacks = []
-
-
 
 function lineListener (input) {  
   if (readlineCallbacks.length > 0 ) {
@@ -63,27 +74,10 @@ readline.on ('line', lineListener)
 
 
 
-// an attempt to modularize the runtime; 2018-07-16; AA
-//
-const Scheduler = require('./Scheduler');
-const LVal = require('./Lval').LVal;
-import proc from './process';
 
-const MailboxProcessor = require('./MailboxProcessor');
-import {NodeManager} from './NodeManager';
-const loadLibs = require('./loadLibs');
-const BaseFunction = require('./BaseFunction').BaseFunction;
-
-const SandboxStatus = require('./SandboxStatus').HandlerState;
-
-// const levels = require('./levels/lohi.js');
-
-const Authority = require('./Authority').Authority;
-import options from './options';
 
 const levels = options;
 
-const Level = require('./Level').Level;
 
 const lub = levels.lub;
 

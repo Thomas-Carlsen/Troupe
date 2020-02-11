@@ -1,6 +1,6 @@
 "use strict";
 const assert = require('assert');
-const { spawn } = require('child_process')
+const axios = require('axios').default;
 
 let compiler = null;
 
@@ -14,8 +14,9 @@ function setRuntimeObj(rt)  {
 }
 
 
-function startCompiler() {
-  compiler = spawn(process.env.TROUPE + '/bin/troupec', ['--json']);
+function startCompiler(compiler_process) {
+  
+  compiler = compiler_process;
 
   compiler.on ('exit', (code, signal)=>{
     // console.error (code, signal);
@@ -41,7 +42,18 @@ function startCompiler() {
   });
 }
 
-startCompiler();
+// this is a async call so don't know if its gonna break anything - TC
+axios.get('http://localhost:3000/serialize')
+  .then(function (response) {
+      // handle success
+      //console.log(response.data);
+      startCompiler(response.data);
+  })
+  .catch(function (error) {
+      // handle error
+      //console.log(error);
+  });
+
 
 // -- utility functions ----------------------------
 
@@ -555,10 +567,4 @@ function serialize(x, pclev) {
 
 
 
-module.exports = {
-  serialize : serialize,
-  deserialize : deserialize,
-  deserializeAsync : deserializeAsync,
-  stopCompiler: stopCompiler,
-  setRuntimeObj: setRuntimeObj  
-}
+export default {serialize, deserialize, deserializeAsync, stopCompiler, setRuntimeObj }

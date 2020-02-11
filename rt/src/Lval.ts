@@ -1,5 +1,5 @@
-import levels from './options';
-import { Level } from "./Level";
+import levels from './options.js';
+import { Level } from "./Level.js";
 
 
 export class LVal {

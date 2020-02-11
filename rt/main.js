@@ -1,9 +1,6 @@
-import { Top as prog_42} from "./programs/prog_42_es6.js";
-//import { runtime, start } from "./built/runtimeMonitored";
+import runtime from "./built_web/runtimeMonitored.js";
 
-const progs = {
-    "prog_42.js": prog_42
-} 
+
 
 let term_options = {
     convertEol: true, 
@@ -78,8 +75,9 @@ async function runTroupe(args) {
     await import(args[0])
         .then(module => {
             let Top = module.Top;
-            let top = new Top(rt);
-            top.main();
+            let top = new Top(runtime.runtime);
+            //top.main();
+            runtime.start(top);
         })
         .catch(err => {
             term.write("\nFile '" + file + "' do not exists");

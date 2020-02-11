@@ -1,9 +1,6 @@
 'use strict'
 // External modules
-const assert = require('assert');
-const request = require('request');
 const fs = require('fs');
-const os = require('os');
 const colors = require ('colors/safe')
 const uuidv4 = require('uuid/v4');
 const yargs = require('yargs');
@@ -14,27 +11,25 @@ const readline = require('readline').createInterface({
 const { promisify } = require ('util');
 
 // Internal runtime modules
-import {RtClosure} from './RtClosure';
-import { isListFlagSet, isTupleFlagSet } from './ValuesUtil';
-import {mkLogger} from './logger';
+import {RtClosure} from './RtClosure.js';
+import { isListFlagSet, isTupleFlagSet } from './ValuesUtil.js';
+import {mkLogger} from './logger.js';
 // an attempt to modularize the runtime; 2018-07-16; AA
 //
-import Scheduler from './Scheduler';
-import {LVal} from './Lval';
-import proc from './process';
-import {MailboxProcessor} from './MailboxProcessor'
-import {NodeManager} from './NodeManager';
-import loadLibs from './loadLibs';
-import {BaseFunction} from './BaseFunction';
-import {HandlerState as SandboxStatus } from './SandboxStatus';
-// const levels = require('./levels/lohi.js');
-import {Authority} from './Authority';
-import options from './options';
-import {Level} from './Level';
-import {theBaseUnit as __unitbase} from './UnitBase';
-let SS = require('./serialize')
-// let WS = require('./webserver.js')
-let p2p = require('./p2p/p2p')
+import Scheduler from './Scheduler.js';
+import {LVal} from './Lval.js';
+import proc from './process.js';
+import {MailboxProcessor} from './MailboxProcessor.js'
+import {NodeManager} from './NodeManager.js';
+import loadLibs from './loadLibs.js';
+import {BaseFunction} from './BaseFunction.js';
+import {HandlerState as SandboxStatus } from './SandboxStatus.js';
+import {Authority} from './Authority.js';
+import options from './options.js';
+import {Level} from './Level.js';
+import {theBaseUnit as __unitbase} from './UnitBase.js';
+import SS from './serialize.js';
+import p2p from './p2p/p2p.js';
 
 
 class RtEnv {
@@ -46,18 +41,14 @@ class RtEnv {
 
 const readFile = promisify (fs.readFile);
 
-
 const rt_uuid = uuidv4();
 
 
-let logLevel = yargs.argv.debug?'debug':'info';
-
-
-const logger = mkLogger('RTM', logLevel);
-
 //logs
+let logLevel = yargs.argv.debug?'debug':'info';
+const logger = mkLogger('RTM', logLevel);
 const info = x => logger.info(x)
-const debug = (x, err="") => logger.debug(x)
+const debug = (x, err?) => logger.debug(x)
 
 const lineBuffer = [];
 const readlineCallbacks = []
@@ -129,7 +120,7 @@ let rt_mkVal                          = (x) => __sched.mkVal(x);
 let rt_mkValPos                       = (x, p) => __sched.mkValPos (x, p);
 let rt_mkCopy                         = (x) => __sched.mkCopy(x);
 let raiseCurrentThreadPC              = (l) => __sched.__currentThread.raiseCurrentThreadPC(l);
-let raiseCurrentThreadPCToBlockingLev = (l="") => __sched.__currentThread.raiseCurrentThreadPCToBlockingLev(l);
+let raiseCurrentThreadPCToBlockingLev = (l?) => __sched.__currentThread.raiseCurrentThreadPCToBlockingLev(l);
 let raiseCurrentBlockingThreadLev     = (l) => __sched.__currentThread.raiseBlockingThreadLev (l);
 let currentThreadPid                  = () => __sched.currentThreadId;
 const __unit = __sched.__unit;

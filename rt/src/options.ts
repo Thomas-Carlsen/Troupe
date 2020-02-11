@@ -1,4 +1,4 @@
-import levels from './levels/tagsets';
+import levels from './levels/tagsets.js';
 export default levels;
 
 

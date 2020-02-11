@@ -1,9 +1,9 @@
-import {mkLogger} from '../logger';
+import {mkLogger} from '../logger.js';
 const logger = mkLogger('TAGSETS');
 const info = x => logger.info(x)
 const debug = x => logger.debug(x)
 
-import { Level }  from '../Level'
+import { Level }  from '../Level.js'
 
 class TagLevel extends Level {
     isTop: boolean;

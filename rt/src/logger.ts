@@ -2,7 +2,21 @@
 // this library or this way of doing things, but this still beats console
 // outputs. 
 
-const { createLogger, format, transports } = require('winston');
+//import axios from "axios";
+/*
+const axios = require('axios').default;
+let promise axios.get('http://localhost:3000/logger')
+  .then(function (response) {
+  })
+  .catch(function (error) {
+      //console.log(error);
+  });
+  */
+
+/*
+import { createLogger, format, transports } from 'winston';
+
+
 const { combine, timestamp, label, printf } = format;
 
 const myFormat = printf(info => {
@@ -12,24 +26,39 @@ const myFormat = printf(info => {
 
 const console = new transports.Console();
 
-export const mkLogger = (l, level='info') => createLogger({
-  level : level, // comment out this file to remove debug messages
-  format: combine(
-    format.colorize(),
+const mkLogger = (l:string, level:string='info') => {
+  return createLogger({
+    level : level, // comment out this file to remove debug messages
+    format: combine(
+      format.colorize(),    
+      label({ label: `${l}` }),
+      timestamp(),
+      myFormat
+    ),
+    transports: [console]
+  });
+};
+*/
 
-    
-    label({ label: `${l}` }),
-    timestamp(),
-    myFormat
-  ),
-  transports: [console]
-});
+import { createLogger } from './../bunyan.js';
 
+const logger = createLogger({ name: 'my-logger' });
 
+const mkLogger = (caller:string, level:string='info') => {
+  return createLogger({ name: 'my-logger' , level: level});
+};
 
-// const log1 = mkLogger("logger 1");
-// const log2 = mkLogger("logger 2");
+// want to have a simple logger in the browser - TC
+// level is either info or warning...
+/*
+const mkLogger = (caller:string, level:string='info') => {
+  let logger = {
+    info : (x) => console.log(`[${caller}] ${level}: ${x}`),
+    error : (x) => console.log(`[${caller}] ${level}: ${x}`),
+    debug : (x) => console.log(`[${caller}] ${level}: ${x}`)
+  }
+  return logger;
+};
+*/
 
-
-// log1.info ('hello')
-// log2.info ('bye')
+export {mkLogger};

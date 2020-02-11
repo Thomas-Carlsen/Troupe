@@ -1,10 +1,10 @@
-import levels from './options';
-import { LVal } from './Lval';
-import { ThreadError } from './ThreadError';
-import colors = require('colors/safe');
-import {mkLogger} from './logger';
+import levels from './options.js';
+import { LVal } from './Lval.js';
+import { ThreadError } from './ThreadError.js';
+const colors = require('colors/safe');
+import {mkLogger} from './logger.js';
 const logger = mkLogger('thread');
-const debug = x => logger.debug(x)
+const debug = x => logger.debug(x);
 let lub = levels.lub;
 
 

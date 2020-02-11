@@ -1,7 +1,7 @@
 'use strict'
 const fs = require('fs');
 
-import {mkLogger} from './logger';
+import {mkLogger} from './logger.js';
 const logger = mkLogger('lib');
 const info = x => logger.info(x)
 const debug = x => logger.debug(x)

@@ -1,13 +1,13 @@
 'use strict'
-const LVal = require('./Lval').LVal;
+const LVal = require('./Lval.js').LVal;
 
-import {mkLogger} from './logger';
+import {mkLogger} from './logger.js';
 const logger = mkLogger('mbox');
 const debug = x => logger.debug(x)
 
-import {HandlerState as SandboxStatus } from './SandboxStatus';
+import {HandlerState as SandboxStatus } from './SandboxStatus.js';
 
-import levels from './options';
+import levels from './options.js';
 
 
 

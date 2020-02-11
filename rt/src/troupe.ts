@@ -1,7 +1,6 @@
 import * as path from 'path';
 let yargs = require('yargs');
-
-import runtime from './runtimeMonitored';
+import runtime from './runtimeMonitored.js';
 
 let p  = yargs.argv.f;
 if (!path.isAbsolute(p))  {

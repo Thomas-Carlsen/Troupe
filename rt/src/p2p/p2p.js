@@ -66,7 +66,7 @@ let yargs = require('yargs');
 let logLevel = yargs.argv.debugp2p?'debug':'info';
 
 
-import {mkLogger} from '../logger';
+import {mkLogger} from '../logger.js';
 const logger = mkLogger('p2p',logLevel);
 const info = x => logger.info(x)
 const debug = x => logger.debug(x)
@@ -595,7 +595,7 @@ async function startp2p(nodeId, rt) {
 
 
 
-module.exports = {
+export default {
     startp2p: startp2p,
     spawnp2p: (arg1, arg2) => _troupeP2P.spawnp2p(arg1, arg2),
     sendp2p: (arg1, arg2, arg3) => _troupeP2P.sendp2p(arg1, arg2, arg3),

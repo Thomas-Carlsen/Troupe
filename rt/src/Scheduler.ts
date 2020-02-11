@@ -1,28 +1,26 @@
 'use strict';
 const uuidv4 = require('uuid/v4');
-import process from './process';
 
-const BaseFunction = require('./BaseFunction').BaseFunction;
-const BaseKont = require('./BaseKont')
-const LVal = require('./Lval').LVal;
-const Thread = require('./Thread').Thread;
-import {HandlerState as SandboxStatus } from './SandboxStatus';
+import process from './process.js';
+const BaseFunction = require('./BaseFunction.js').BaseFunction;
+const LVal = require('./Lval.js').LVal;
+const Thread = require('./Thread.js').Thread;
+import {HandlerState as SandboxStatus } from './SandboxStatus.js';
+const ThreadError = require('./ThreadError.js').ThreadError;
+import {theBaseUnit as __unitbase} from './UnitBase.js';
+import {mkLogger} from './logger.js';
+import levels from './options.js';
 
-const ThreadError = require('./ThreadError').ThreadError;
-import {theBaseUnit as __unitbase} from './UnitBase';
 
-import {mkLogger} from './logger';
 const logger = mkLogger('scheduler');
 const info = x => logger.info(x)
 const debug = x => logger.debug(x)
-
-
 const STACKDEPTH = 50;
 
 let ProcessID = process.ProcessID;
 
 
-import levels from './options';
+
 
 
 let lub = levels.lub;

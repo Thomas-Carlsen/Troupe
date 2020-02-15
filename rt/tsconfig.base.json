@@ -5,5 +5,9 @@
     },
     "include": [
         "./src/**/*"
+    ],
+    "exclude": [
+        "./src/logger.ts",
+        "./src/web_src/*"
     ]
 }

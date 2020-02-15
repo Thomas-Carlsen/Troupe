@@ -7,7 +7,7 @@ slack:
 yarn:
 	yarn install
 rt:
-	cd rt; tsc -p "./tsconfig.node.json" #; tsc -p "./tsconfig.web.json"
+	cd rt; tsc -p "./tsconfig.node.json" ; tsc -p "./tsconfig.web.json" ; ./moveWebFiles.sh
 libs:
 	$(COMPILER) ./lib/lists.trp -l
 	$(COMPILER) ./lib/declassifyutil.trp -l 

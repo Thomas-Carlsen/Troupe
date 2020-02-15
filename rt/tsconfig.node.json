@@ -5,8 +5,5 @@
         "moduleResolution": "node",
         "module": "commonjs",
         "target": "ES2017"
-    },
-    "include": [
-        "./src/**/*"
-    ]
+    }
 }

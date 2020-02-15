@@ -3,10 +3,12 @@
     "compilerOptions": {
         "outDir": "./built_web",
         "module": "esnext",
-        "target": "es6",
-        "sourceMap": true
+        "target": "es6"
     },
-    "include": [
-        "./src/**/*"
+    "files": [
+        "./src/web_src/logger.ts"
+    ],
+    "exclude": [
+        "./src/logger.ts"
     ]
 }

@@ -73,6 +73,10 @@ var UnitBase_js_1 = require("./UnitBase.js");
 var serialize_js_1 = __importDefault(require("./serialize.js"));
 var p2p_js_1 = require("./p2p/p2p.js");
 // GLOBALS
+var __sched;
+var __theMailbox;
+var aliases;
+var __nodeManager;
 var localNode;
 //const readFile = promisify (fs.readFile);
 var rt_uuid = uuidv4();
@@ -97,12 +101,65 @@ var lub = levels.lub;
 var glb = levels.glb;
 var flowsTo = levels.flowsTo;
 var ProcessID = process_js_1.default.ProcessID;
+var _allowRemoteSpawn = false;
+var __p2pRunning = false;
+// these are initialized later in webServerReady handler
+// once we get information from the webserver about the
+// port on which we are listening...
+var __theRegister = {};
+var _trustMap = {};
+var rtObj = null;
+var mkBase;
+var rt_ret;
+var rt_mkVal;
+var rt_mkValPos;
+var rt_mkCopy;
+var rt_debug;
+var rt_nodeFromProcess;
+var rt_raiseTrust;
+var rt_attenuate;
+var rt_declassify;
+var rt_toStringLabeled;
+var rt_toString;
+var rt_getTime;
+var rt_print;
+var rt_printWithLabels;
+var rt_printString;
+var rt_writeString;
+var rt_inputline;
+var rt_question;
+var rt_self;
+var rt_send;
+var rt_spawn;
+var rt_sleep;
+var rt_sandbox;
+var rt_restore;
+var rt_save;
+var rt_receive;
+var rt_rcvp;
+var rt_rcv;
+//   // this.mkSecret = mkBase(baseMkSecret);
+//   // this.adv = mkBase(baseDisclose);
+var rt_register;
+var rt_whereis;
+var rt_exit;
+var __unit;
+var raiseCurrentThreadPC;
+var raiseCurrentThreadPCToBlockingLev;
+var raiseCurrentBlockingThreadLev;
+var currentThreadPid;
 // CLASSES 
 var RtEnv = /** @class */ (function () {
     function RtEnv() {
         // this.ret = __sched.ret;
     }
     return RtEnv;
+}());
+var LibEnv = /** @class */ (function () {
+    function LibEnv() {
+        this.ret = null;
+    }
+    return LibEnv;
 }());
 // FUNCTIONS
 function lineListener(input) {
@@ -128,46 +185,52 @@ function lubs(x) {
         return r;
     }
 }
-var __sched = new Scheduler_js_1.default(rt_uuid);
-debug("Initialized a new Scheduler i.e. __sched");
-var __theMailbox = new MailboxProcessor_js_1.MailboxProcessor(__sched);
-debug("Initialized a new MailboxProcessor i.e. __theMailbox");
-//todo: fix yargs
-var aliases = {}; /*yargs.argv.aliases
-                  ? JSON.parse ( fs.readFileSync(yargs.argv.aliases))
-                  : {}*/
-var __nodeManager = new NodeManager_js_1.NodeManager(levels, aliases); // 2019-01-03: todo: use options; AA
-debug("Initialized a new NodeManager i.e. __nodeManager");
-var __p2pRunning = false;
-// these are initialized later in webServerReady handler
-// once we get information from the webserver about the
-// port on which we are listening...
-/////////////////////////////////////
-//
-//
-var mkBase = function (f, name) {
-    if (name === void 0) { name = null; }
-    return __sched.mkBase(f, name);
-};
-var rt_mkVal = function (x) { return __sched.mkVal(x); };
-var rt_mkValPos = function (x, p) { return __sched.mkValPos(x, p); };
-var rt_mkCopy = function (x) { return __sched.mkCopy(x); };
-var raiseCurrentThreadPC = function (l) { return __sched.__currentThread.raiseCurrentThreadPC(l); };
-var raiseCurrentThreadPCToBlockingLev = function (l) { return __sched.__currentThread.raiseCurrentThreadPCToBlockingLev(l); };
-var raiseCurrentBlockingThreadLev = function (l) { return __sched.__currentThread.raiseBlockingThreadLev(l); };
-var currentThreadPid = function () { return __sched.currentThreadId; };
-var __unit = __sched.__unit;
-/////////////////////////////////////
-var LibEnv = /** @class */ (function () {
-    function LibEnv() {
-        this.ret = null;
-    }
-    return LibEnv;
-}());
-var rt_self = mkBase(function (env, arg) {
-    // debug ("* rt self", currentPid);
-    rt_ret(currentThreadPid());
-}, "self");
+;
+function initStuf() {
+    debug("Initializing");
+    __sched = new Scheduler_js_1.default(rt_uuid);
+    debug("Initialized Scheduler i.e. __sched");
+    __theMailbox = new MailboxProcessor_js_1.MailboxProcessor(__sched);
+    debug("Initialized MailboxProcessor i.e. __theMailbox");
+    //todo: fix yargs
+    aliases = {}; /*yargs.argv.aliases
+                    ? JSON.parse ( fs.readFileSync(yargs.argv.aliases))
+                    : {}*/
+    __nodeManager = new NodeManager_js_1.NodeManager(levels, aliases); // 2019-01-03: todo: use options; AA
+    debug("Initialized NodeManager i.e. __nodeManager");
+    mkBase = function (f, name) {
+        if (name === void 0) { name = null; }
+        return __sched.mkBase(f, name);
+    };
+    rt_mkVal = function (x) { return __sched.mkVal(x); };
+    rt_mkValPos = function (x, p) { return __sched.mkValPos(x, p); };
+    rt_mkCopy = function (x) { return __sched.mkCopy(x); };
+    raiseCurrentThreadPC = function (l) { return __sched.__currentThread.raiseCurrentThreadPC(l); };
+    raiseCurrentThreadPCToBlockingLev = function (l) { return __sched.__currentThread.raiseCurrentThreadPCToBlockingLev(l); };
+    raiseCurrentBlockingThreadLev = function (l) { return __sched.__currentThread.raiseBlockingThreadLev(l); };
+    currentThreadPid = function () { return __sched.currentThreadId; };
+    __unit = __sched.__unit;
+    rt_self = mkBase(function (env, arg) {
+        // debug ("* rt self", currentPid);
+        rt_ret(currentThreadPid());
+    }, "self");
+    rt_sleep = mkBase(function (env, arg) {
+        assertIsNumber(arg);
+        var delay = arg.val;
+        var theThread = __sched.__currentThread;
+        theThread.sleeping = true;
+        theThread.timeoutObject =
+            setTimeout(function () {
+                __sched.__currentThread = theThread; // probably unnecessary because we don't create any labeled values here.
+                theThread.sleeping = false;
+                theThread.timeoutObject = null;
+                theThread.returnInThread(__unit);
+                __sched.scheduleThreadT(theThread);
+                __sched.resumeLoopAsync();
+            }, delay);
+    }, "sleep");
+}
+initStuf();
 // --------------------------------------------------
 function spawnAtNode(nodeid, f) {
     return __awaiter(this, void 0, void 0, function () {
@@ -207,7 +270,6 @@ function spawnAtNode(nodeid, f) {
         });
     });
 }
-var _allowRemoteSpawn = false;
 function remoteSpawnOK() {
     return _allowRemoteSpawn;
 }
@@ -246,25 +308,11 @@ function spawnFromRemote(jsonObj, fromNode) {
         });
     });
 }
-var rt_sleep = mkBase(function (env, arg) {
-    assertIsNumber(arg);
-    var delay = arg.val;
-    var theThread = __sched.__currentThread;
-    theThread.sleeping = true;
-    theThread.timeoutObject =
-        setTimeout(function () {
-            __sched.__currentThread = theThread; // probably unnecessary because we don't create any labeled values here.
-            theThread.sleeping = false;
-            theThread.timeoutObject = null;
-            theThread.returnInThread(__unit);
-            __sched.scheduleThreadT(theThread);
-            __sched.resumeLoopAsync();
-        }, delay);
-}, "sleep");
 function rt_raisedToLev(x, y) {
     return new Lval_js_1.LVal(x.val, lub(x.lev, y));
 }
-var rt_sandbox = mkBase(function (env, arg) {
+//vh
+rt_sandbox = mkBase(function (env, arg) {
     assertIsNTuple(arg, 2);
     var theThread = __sched.__currentThread;
     var threadState = theThread.exportState();
@@ -337,7 +385,8 @@ var rt_sandbox = mkBase(function (env, arg) {
     theThread.barrierdepth = 0;
     rt_tailcall(arg.val[1], __unit);
 }, "sandbox");
-var rt_spawn = mkBase(function (env, larg) {
+//vh
+rt_spawn = mkBase(function (env, larg) {
     assertNormalState("spawn");
     // debug ("* rt rt_spawn *", larg.val, larg.lev);
     raiseCurrentThreadPC(larg.lev);
@@ -370,7 +419,8 @@ function persist(obj, path) {
     var jsonObj = serialize_js_1.default.serialize(obj, __sched.pc).data;
     fs.writeFileSync(path, JSON.stringify(jsonObj));
 }
-var rt_save = mkBase(function (env, larg) {
+//vh
+rt_save = mkBase(function (env, larg) {
     assertIsNTuple(larg, 2);
     raiseCurrentThreadPC(larg.lev);
     var arg = larg.val;
@@ -379,7 +429,8 @@ var rt_save = mkBase(function (env, larg) {
     persist(data, "./out/saved." + file + ".json");
     rt_ret(__unit);
 }, "save");
-var rt_restore = mkBase(function (env, arg) {
+//vh
+rt_restore = mkBase(function (env, arg) {
     assertIsString(arg);
     var theThread = __sched.__currentThread;
     var file = arg;
@@ -484,7 +535,8 @@ function rt_sendMessageNochecks(lRecipientPid, message, ret) {
         sendMessageToRemote(recipientPid, message);
     }
 }
-var rt_send = mkBase(function (env, larg) {
+//vh
+rt_send = mkBase(function (env, larg) {
     raiseCurrentThreadPCToBlockingLev();
     assertNormalState("send");
     raiseCurrentThreadPC(larg.lev);
@@ -501,27 +553,6 @@ var rt_send = mkBase(function (env, larg) {
     var message = arg[1];
     rt_sendMessageNochecks(lRecipientPid, message);
 }, "send");
-/*
-function baseRcvWithBounds(env, arg) {
-  assertNormalState("receive")
-  assertIsNTuple(arg, 3);
-  assertIsLevel (arg.val[0]);
-  assertIsLevel (arg.val[1]);
-  assertIsList  (arg.val[2]);
-
-  raiseCurrentThreadPC(arg.lev);
-  let argv = arg.val;
-  if (Array.isArray(argv) && argv.length == 3) {
-    let lowb = argv[0];
-    let highb = argv[1];
-    let handlers = argv[2];
-    raiseCurrentThreadPC(lub(lowb.lev, highb.lev));
-    __theMailbox.rcv(lub(lowb.val, __sched.pc), highb.val, handlers);
-  } else {
-    debug("wrong number of arguments to rcv");
-  }
-}
-*/
 function okToDeclassify(levFrom, levTo, auth) {
     var _l = lubs([auth.val.authorityLevel, levTo.val]);
     return flowsTo(levFrom.lev, _l);
@@ -591,19 +622,12 @@ function baseRcv(env, handlers) {
     assertIsList(handlers);
     __theMailbox.rcv(__sched.pc, __sched.pc, handlers);
 }
-var rt_receive = mkBase(baseRcv);
-var rt_rcvp = mkBase(receiveAtOneLevel);
-var rt_rcv = mkBase(receiveBoundedRangeWithAuthority);
-function formatToN(s, n) {
-    if (s.length < n) {
-        var j = s.length;
-        for (; j < n; j++) {
-            s = s + " ";
-        }
-    }
-    return s;
-}
-var rt_exit = mkBase(function (env, arg) {
+//vh
+rt_receive = mkBase(baseRcv);
+rt_rcvp = mkBase(receiveAtOneLevel);
+rt_rcv = mkBase(receiveBoundedRangeWithAuthority);
+//vh
+rt_exit = mkBase(function (env, arg) {
     assertNormalState("exit");
     assertIsNTuple(arg, 2);
     assertIsAuthority(arg.val[0]);
@@ -612,18 +636,21 @@ var rt_exit = mkBase(function (env, arg) {
     cleanup();
     //process.exit(arg.val[1].val);
 }, "exit");
-var rt_getTime = mkBase(function (env, arg) {
+//vh
+rt_getTime = mkBase(function (env, arg) {
     assertIsUnit(arg);
     var d = new Date();
     var t = d.getTime();
     var v = new Lval_js_1.LVal(t, __sched.pc);
     rt_ret(v);
 });
-var rt_printWithLabels = mkBase(function (env, arg) {
+//vh
+rt_printWithLabels = mkBase(function (env, arg) {
     log(__sched.__currentThread.mkCopy(arg).stringRep(false));
     rt_ret(__unit);
 }, "printWithLabels");
-var rt_toString = mkBase(function (env, arg) {
+//vh
+rt_toString = mkBase(function (env, arg) {
     var taintRef = { lev: __sched.pc };
     var s = __sched.__currentThread.mkCopy(arg).stringRep(true, // omit labels
     taintRef // accumulate taint into this reference
@@ -631,7 +658,8 @@ var rt_toString = mkBase(function (env, arg) {
     var r = __sched.__currentThread.mkValWithLev(s, taintRef.lev);
     rt_ret(r);
 }, "toString");
-var rt_toStringLabeled = mkBase(function (env, arg) {
+//vh
+rt_toStringLabeled = mkBase(function (env, arg) {
     var v = __sched.__currentThread.mkCopy(arg);
     var taintRef = { lev: __sched.pc };
     var s = v.stringRep(false, // do not omit labels 
@@ -640,7 +668,8 @@ var rt_toStringLabeled = mkBase(function (env, arg) {
     var r = __sched.__currentThread.mkValWithLev(s, taintRef.lev);
     rt_ret(r);
 }, "toStringLabeled");
-var rt_print = mkBase(function (env, arg) {
+//vh
+rt_print = mkBase(function (env, arg) {
     log(
     // colors.green (formatToN ( "PID:" +  __sched.currentThreadId.stringRep(), 30)),
     // colors.green (formatToN ( "PC:" +  __sched.pc.stringRep(), 20)),
@@ -648,18 +677,21 @@ var rt_print = mkBase(function (env, arg) {
     arg.stringRep(true));
     rt_ret(__unit);
 }, "print");
-var rt_printString = mkBase(function (env, arg) {
+//vh
+rt_printString = mkBase(function (env, arg) {
     assertIsString(arg);
     log(arg.val);
     rt_ret(__unit);
 }, "printString");
-var rt_writeString = mkBase(function (env, arg) {
+//vh
+rt_writeString = mkBase(function (env, arg) {
     assertIsString(arg);
     //todo: substitute below
     //process.stdout.write(arg.val)
     rt_ret(__unit);
 }, "writeString");
-var rt_question = mkBase(function (env, arg) {
+//vh
+rt_question = mkBase(function (env, arg) {
     //readline.removeListener ('line', lineListener);
     //term.removeListener ('line', lineListener);
     var theThread = __sched.__currentThread;
@@ -676,7 +708,8 @@ var rt_question = mkBase(function (env, arg) {
   
     })*/
 }, "question");
-var rt_inputline = mkBase(function (env, arg) {
+//vh
+rt_inputline = mkBase(function (env, arg) {
     assertIsUnit(arg);
     var theThread = __sched.__currentThread;
     theThread.raiseBlockingThreadLev(levels.TOP);
@@ -694,13 +727,15 @@ var rt_inputline = mkBase(function (env, arg) {
         });
     }
 }, "inputLine");
-var rt_debug = function (s) {
+//vh
+rt_debug = function (s) {
     var tid = __sched.__currentThread.tid.stringRep();
     var pid = __sched.pc.stringRep();
     var bid = __sched.blockingTopLev.stringRep();
     log(colors.red(formatToN("PID:" + tid, 50)), colors.red(formatToN("PC:" + pid, 20)), colors.red(formatToN("BL:" + bid, 20)), s);
 };
-var rt_attenuate = mkBase(function (env, arg) {
+//vh
+rt_attenuate = mkBase(function (env, arg) {
     assertIsNTuple(arg, 2);
     var argv = arg.val;
     var authFrom = argv[0];
@@ -714,7 +749,8 @@ var rt_attenuate = mkBase(function (env, arg) {
     var r = new Lval_js_1.LVal(new Authority_js_1.Authority(l_auth), l_meta);
     rt_ret(r);
 }, "attenuate");
-var rt_declassify = mkBase(function (env, arg) {
+//vh
+rt_declassify = mkBase(function (env, arg) {
     //  assertDeclassificationAllowed()// 2019-03-06: AA: allowing declassification everywhere?
     assertIsNTuple(arg, 3);
     var argv = arg.val;
@@ -742,7 +778,8 @@ var rt_declassify = mkBase(function (env, arg) {
         // return; // nothing scheduled; should be unreachabele
     }
 }, "declassify");
-var rt_raiseTrust = mkBase(function (env, arg) {
+//vh
+rt_raiseTrust = mkBase(function (env, arg) {
     assertNormalState("raise trust");
     assertIsNTuple(arg, 3);
     var argv = arg.val;
@@ -766,7 +803,8 @@ var rt_raiseTrust = mkBase(function (env, arg) {
  * Returns a string corresponding to the node identify
  * from a process
  */
-var rt_nodeFromProcess = mkBase(function (env, arg) {
+//vh
+rt_nodeFromProcess = mkBase(function (env, arg) {
     assertIsProcessId(arg);
     var data = arg.val;
     var nodeId = data.node.nodeId;
@@ -774,8 +812,8 @@ var rt_nodeFromProcess = mkBase(function (env, arg) {
     rt_ret(v);
 }, "node");
 // TODO: check that the arguments to the register are actually pids
-var __theRegister = {};
-var rt_register = mkBase(function (env, arg) {
+//vh
+rt_register = mkBase(function (env, arg) {
     assertNormalState("register");
     assertIsNTuple(arg, 3);
     assertIsString(arg.val[0]);
@@ -790,22 +828,8 @@ var rt_register = mkBase(function (env, arg) {
     __theRegister[k] = v;
     rt_ret(__unit);
 }, "register");
-function whereisFromRemote(k) {
-    return __awaiter(this, void 0, void 0, function () {
-        var serObj;
-        return __generator(this, function (_a) {
-            __sched.resumeLoopAsync();
-            // TODO: 2018-10-20: make use of the levels as they were
-            // recorded during the registration (instead of the bottom here )
-            if (__theRegister[k]) {
-                serObj = serialize_js_1.default.serialize(__theRegister[k], levels.BOT).data;
-                return [2 /*return*/, serObj];
-            }
-            return [2 /*return*/];
-        });
-    });
-}
-var rt_whereis = mkBase(function (env, arg) {
+//vh
+rt_whereis = mkBase(function (env, arg) {
     assertNormalState("whereis");
     assertIsNTuple(arg, 2);
     assertIsNode(arg.val[0]);
@@ -855,11 +879,37 @@ var rt_whereis = mkBase(function (env, arg) {
         }); })();
     }
 }, "whereis");
+//vh
+rt_ret = function (arg) { return __sched.returnInThread(arg); };
+//fsp
+function formatToN(s, n) {
+    if (s.length < n) {
+        var j = s.length;
+        for (; j < n; j++) {
+            s = s + " ";
+        }
+    }
+    return s;
+}
+function whereisFromRemote(k) {
+    return __awaiter(this, void 0, void 0, function () {
+        var serObj;
+        return __generator(this, function (_a) {
+            __sched.resumeLoopAsync();
+            // TODO: 2018-10-20: make use of the levels as they were
+            // recorded during the registration (instead of the bottom here )
+            if (__theRegister[k]) {
+                serObj = serialize_js_1.default.serialize(__theRegister[k], levels.BOT).data;
+                return [2 /*return*/, serObj];
+            }
+            return [2 /*return*/];
+        });
+    });
+}
 var baseMkSecret = function (env, x) {
     // debug ("making secret " + x.val)
     rt_ret(new Lval_js_1.LVal(x.val, levels.TOP));
 };
-var rt_mkSecret = mkBase(baseMkSecret);
 var baseDisclose = function (env, x) {
     assertNormalState("baseDisclose");
     // assert that
@@ -872,7 +922,6 @@ var baseDisclose = function (env, x) {
     }
     rt_ret(__unit);
 };
-var rt_adv = mkBase(baseDisclose);
 // --------------------------------------------------
 function rt_setret(namespace, kf, e) {
     // assertIsEnv(e);
@@ -917,7 +966,6 @@ function threadError(s, internal) {
     if (internal === void 0) { internal = false; }
     return __sched.__currentThread.threadError(s, internal);
 }
-var rt_threadError = threadError;
 function rt_error(x) {
     threadError(x.val);
 }
@@ -940,7 +988,6 @@ function rt_tailcall(lff, arg) {
     // __sched.tailNext ( () => { ff.fun (ff.env, arg) } );
     __sched.tail(ff.fun, ff.env, arg, ff.namespace);
 }
-var rt_ret = function (arg) { return __sched.returnInThread(arg); };
 function runtimeEquals(o1, o2) {
     if (typeof o1.atom != "undefined" && typeof o2.atom != "undefined") {
         // obs: atoms operate in a global namespace; 2018-03-09; aa
@@ -965,7 +1012,6 @@ function rt_linkLibs(libs, obj, cb) {
     obj.libs = {};
     loadLibs_js_1.default.loadLibsAsync(libs, obj, cb, rtObj);
 }
-var _trustMap = {};
 function nodeTrustLevel(nodeid) {
     if (_trustMap) {
         return _trustMap[nodeid] ? _trustMap[nodeid] : levels.BOT;
@@ -1117,7 +1163,7 @@ function RuntimeObject() {
     this.glb = glb;
     this.error = rt_error;
     this.errorPos = rt_errorPos;
-    this.threadError = rt_threadError;
+    this.threadError = threadError;
     this.Closure = RtClosure_js_1.RtClosure;
     this.Env = RtEnv;
     this.setret = rt_setret;
@@ -1176,8 +1222,8 @@ function RuntimeObject() {
     this.receive = rt_receive;
     this.rcvp = rt_rcvp;
     this.rcv = rt_rcv;
-    this.mkSecret = rt_mkSecret;
-    this.adv = rt_adv;
+    this.mkSecret = mkBase(baseMkSecret);
+    this.adv = mkBase(baseDisclose);
     this.register = rt_register;
     this.whereis = rt_whereis;
     this.exit = rt_exit;
@@ -1366,13 +1412,17 @@ function RuntimeObject() {
         rt_ret(__unit);
     });
 }
-var rtObj = new RuntimeObject();
 function mkRuntime() {
+    //todo: set check bool for if mkRuntime has been run - isRuntimeCreated
+    rtObj = new RuntimeObject();
+    debug("Initialized RuntimeObject i.e. rtObj");
+    __theMailbox.setRuntimeObject(rtObj);
+    debug("Setting rtObj as rt in __theMailbox");
+    __sched.setRuntimeObject(rtObj);
+    debug("Setting rtObj as rt in __sched");
     return rtObj;
 }
 exports.mkRuntime = mkRuntime;
-__theMailbox.setRuntimeObject(rtObj);
-__sched.setRuntimeObject(rtObj);
 function cleanup(cb) {
     if (cb === void 0) { cb = function () { }; }
     debug("cleanup called");
@@ -1432,6 +1482,7 @@ function startRuntime(file) {
         }
         var persist, rtHandlers, trustMapFile, s, trustList, trustMap_1, allowRemoteSpawn, localonly, nodeIdFile, nodeIdObj;
         return __generator(this, function (_a) {
+            //todo: abort with a message if isRuntimeCreated is false
             // todo-api: localhost/../serialize
             serialize_js_1.default.setRuntimeObj(rtObj);
             persist = null // yargs.argv.persist ? yargs.argv.persist : null;

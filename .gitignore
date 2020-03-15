@@ -35,3 +35,6 @@ yarn-error.log
 *.swp
 bin/troupe
 bin/understudy
+node_modules
+.cache
+build

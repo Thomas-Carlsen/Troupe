@@ -26,7 +26,8 @@ class Logger {
         
     }
     error(mess:string) {
-        term.write("error:" + this.caller + ": " + mess);
+        // errors in term will be added in later
+        //term.write("error:" + this.caller + ": " + mess);
         console.error(this.caller + ": " + mess);
     }
 }

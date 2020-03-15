@@ -21,7 +21,6 @@ var Logger = /** @class */ (function () {
         term_js_1.term.write(this.caller + ": " + mess + "\n");
     };
     Logger.prototype.debug = function (mess) {
-        console.log("term:", term_js_1.term);
         if (this.level == 'debug') {
             term_js_1.term.write("debug:" + this.caller + ": " + mess + "\n");
             //console.log("debug:" + this.caller + ": " + mess);
@@ -29,7 +28,8 @@ var Logger = /** @class */ (function () {
         }
     };
     Logger.prototype.error = function (mess) {
-        term_js_1.term.write("error:" + this.caller + ": " + mess);
+        // errors in term will be added in later
+        //term.write("error:" + this.caller + ": " + mess);
         console.error(this.caller + ": " + mess);
     };
     return Logger;

@@ -312,7 +312,9 @@ function deserializeAsync(lev, jsonObj) {
     });
 }
 function stopCompiler() {
-    compiler.stdin.end();
+    console.log("serialize: stopCompiler");
+    //todo: make this call on the api server side
+    //compiler.stdin.end();
 }
 /*
 ..######..########.########..####....###....##.......####.########....###....########.####..#######..##....##
@@ -459,20 +461,23 @@ function serialize(x, pclev) {
 function startCompiler(compiler_process) {
     //troupec compiler
     compiler = compiler_process;
-    compiler.on('exit', function (code, signal) {
-        // console.error (code, signal);
-        process.exit(code);
+    //todo: a lot of redesigning how the compiler is run on the api server
+    /*
+    compiler.on('exit', (code, signal) => {
+      // console.error (code, signal);
+      process.exit(code);
     });
-    compiler.stdout.on('data', function (data) {
-        var d = "" + data;
-        accum += d;
-        var marker = "/*-----*/\n\n";
-        var j = accum.indexOf(marker);
-        if (j >= 0) {
-            compilerOutputReady(accum.slice(0, j));
-            accum = accum.slice(j + marker.length);
-        }
-    });
+    */
+    // compiler.stdout.on('data', (data) => {
+    //   let d = `${data}`
+    //   accum += d;
+    //   let marker = "/*-----*/\n\n"
+    //   let j = accum.indexOf(marker);
+    //   if (j >= 0) {
+    //     compilerOutputReady (accum.slice(0,j));
+    //     accum = accum.slice(j + marker.length);
+    //   }
+    // });
 }
 function serializeMain() {
     return __awaiter(this, void 0, void 0, function () {

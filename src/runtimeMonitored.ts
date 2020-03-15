@@ -37,6 +37,10 @@ import { startp2p } from './p2p/p2p.js';
 
 
 // GLOBALS
+let __sched;
+let __theMailbox;
+let aliases;
+let __nodeManager
 let localNode;
 //const readFile = promisify (fs.readFile);
 const rt_uuid = uuidv4();
@@ -55,6 +59,57 @@ const lub = levels.lub;
 const glb = levels.glb;
 const flowsTo = levels.flowsTo;
 let ProcessID = proc.ProcessID;
+let _allowRemoteSpawn = false;
+let __p2pRunning = false;
+// these are initialized later in webServerReady handler
+// once we get information from the webserver about the
+// port on which we are listening...
+
+let __theRegister = {}
+let _trustMap = {}
+let rtObj = null;
+
+let mkBase;
+let rt_ret;
+let rt_mkVal;
+let rt_mkValPos;
+let rt_mkCopy;
+let rt_debug;
+let rt_nodeFromProcess;
+let rt_raiseTrust;
+let rt_attenuate;
+let rt_declassify;
+let rt_toStringLabeled;
+let rt_toString;
+let rt_getTime;
+let rt_print;
+let rt_printWithLabels;
+let rt_printString;
+let rt_writeString;
+let rt_inputline;
+let rt_question;
+let rt_self;
+let rt_send;
+let rt_spawn;
+let rt_sleep;
+let rt_sandbox;
+let rt_restore;
+let rt_save;
+let rt_receive;
+let rt_rcvp;
+let rt_rcv;
+//   // this.mkSecret = mkBase(baseMkSecret);
+//   // this.adv = mkBase(baseDisclose);
+let rt_register;
+let rt_whereis;
+let rt_exit;
+let __unit;
+
+
+let raiseCurrentThreadPC;
+let raiseCurrentThreadPCToBlockingLev;
+let raiseCurrentBlockingThreadLev;
+let currentThreadPid;
 
 
 
@@ -67,6 +122,12 @@ class RtEnv {
   }
 }
 
+class LibEnv {
+  ret;
+  constructor() {
+    this.ret = null;
+  }
+}
 
 
 
@@ -102,60 +163,12 @@ function lubs(x) {
     return r;
   }
 }
+;
 
 
 
 
-const __sched = new Scheduler(rt_uuid);
-debug(`Initialized a new Scheduler i.e. __sched`);
-const __theMailbox = new MailboxProcessor(__sched);
-debug(`Initialized a new MailboxProcessor i.e. __theMailbox`);
 
-//todo: fix yargs
-let aliases = {} /*yargs.argv.aliases
-                  ? JSON.parse ( fs.readFileSync(yargs.argv.aliases))
-                  : {}*/
-const __nodeManager = new NodeManager(levels, aliases); // 2019-01-03: todo: use options; AA
-debug(`Initialized a new NodeManager i.e. __nodeManager`);
-
-let __p2pRunning = false;
-// these are initialized later in webServerReady handler
-// once we get information from the webserver about the
-// port on which we are listening...
-
-
-/////////////////////////////////////
-//
-//
-
-let mkBase = (f, name = null) => __sched.mkBase(f, name);
-let rt_mkVal = (x) => __sched.mkVal(x);
-let rt_mkValPos = (x: string, p: string) => __sched.mkValPos(x, p);
-let rt_mkCopy = (x) => __sched.mkCopy(x);
-let raiseCurrentThreadPC = (l) => __sched.__currentThread.raiseCurrentThreadPC(l);
-let raiseCurrentThreadPCToBlockingLev = (l?) => __sched.__currentThread.raiseCurrentThreadPCToBlockingLev(l);
-let raiseCurrentBlockingThreadLev = (l) => __sched.__currentThread.raiseBlockingThreadLev(l);
-let currentThreadPid = () => __sched.currentThreadId;
-const __unit = __sched.__unit;
-
-
-/////////////////////////////////////
-
-
-
-
-class LibEnv {
-  ret;
-  constructor() {
-    this.ret = null;
-  }
-}
-
-
-let rt_self = mkBase((env, arg) => {
-  // debug ("* rt self", currentPid);
-  rt_ret(currentThreadPid());
-}, "self");
 
 
 // --------------------------------------------------
@@ -206,7 +219,8 @@ async function spawnAtNode(nodeid, f) {
   }
 }
 
-let _allowRemoteSpawn = false;
+
+
 function remoteSpawnOK() {
   return _allowRemoteSpawn;
 }
@@ -257,125 +271,165 @@ async function spawnFromRemote(jsonObj, fromNode) {
 }
 
 
-let rt_sleep = mkBase((env, arg) => {
-  assertIsNumber(arg);
-  let delay = arg.val;
-  let theThread = __sched.__currentThread;
-  theThread.sleeping = true;
-  theThread.timeoutObject =
-    setTimeout(() => {
-      __sched.__currentThread = theThread;   // probably unnecessary because we don't create any labeled values here.
-      theThread.sleeping = false;
-      theThread.timeoutObject = null;
-      theThread.returnInThread(__unit);
-
-      __sched.scheduleThreadT(theThread);
-      __sched.resumeLoopAsync();
-
-    }, delay)
-}, "sleep")
-
 
 function rt_raisedToLev(x, y) {
   return new LVal(x.val, lub(x.lev, y));
 }
 
-let rt_sandbox = mkBase((env, arg) => {
-  assertIsNTuple(arg, 2);
-  let theThread = __sched.__currentThread;
-  let threadState = theThread.exportState()
+
+function initStuf(){
+  debug(`Initializing`);
+  __sched = new Scheduler(rt_uuid);
+  debug(`Initialized Scheduler i.e. __sched`);
+  __theMailbox = new MailboxProcessor(__sched);
+  debug(`Initialized MailboxProcessor i.e. __theMailbox`);
+
+  //todo: fix yargs
+  aliases = {} /*yargs.argv.aliases
+                  ? JSON.parse ( fs.readFileSync(yargs.argv.aliases))
+                  : {}*/
+  __nodeManager = new NodeManager(levels, aliases); // 2019-01-03: todo: use options; AA
+  debug(`Initialized NodeManager i.e. __nodeManager`);
 
 
-  let done = false;
-  let trapperInvoked = false;
+  mkBase = (f, name = null) => __sched.mkBase(f, name);
+  rt_mkVal = (x) => __sched.mkVal(x);
+  rt_mkValPos = (x: string, p: string) => __sched.mkValPos(x, p);
+  rt_mkCopy = (x) => __sched.mkCopy(x);
+  raiseCurrentThreadPC = (l) => __sched.__currentThread.raiseCurrentThreadPC(l);
+  raiseCurrentThreadPCToBlockingLev = (l?) => __sched.__currentThread.raiseCurrentThreadPCToBlockingLev(l);
+  raiseCurrentBlockingThreadLev = (l) => __sched.__currentThread.raiseBlockingThreadLev(l);
+  currentThreadPid = () => __sched.currentThreadId;
+  __unit = __sched.__unit;
 
-  let delay = arg.val[0];
-  let retVal = null;
-  raiseCurrentThreadPC(delay.lev);
 
-  function mk_tupleVal(x) {
-    return theThread.mkVal(rt_mkTuple(x));
-  }
+  rt_self = mkBase((env, arg) => {
+    // debug ("* rt self", currentPid);
+    rt_ret(currentThreadPid());
+  }, "self");
+  
+  rt_sleep = mkBase((env, arg) => {
+    assertIsNumber(arg);
+    let delay = arg.val;
+    let theThread = __sched.__currentThread;
+    theThread.sleeping = true;
+    theThread.timeoutObject =
+      setTimeout(() => {
+        __sched.__currentThread = theThread;   // probably unnecessary because we don't create any labeled values here.
+        theThread.sleeping = false;
+        theThread.timeoutObject = null;
+        theThread.returnInThread(__unit);
+  
+        __sched.scheduleThreadT(theThread);
+        __sched.resumeLoopAsync();
+  
+      }, delay)
+  }, "sleep");
 
-  function ok(x, l) {
-    let statusOk = __sched.__currentThread.mkValWithLev(true, l);
-    let y = rt_raisedToLev(x, l);
-    return mk_tupleVal([statusOk, y]);
-  }
-
-  function bad(x, l) {
-    let statusBad = __sched.__currentThread.mkValWithLev(false, l);
-    let y = rt_raisedToLev(x, l);
-    return mk_tupleVal([statusBad, y])
-  }
-
-  setTimeout(() => {
-    theThread.handlerState = new SandboxStatus.NORMAL();
-    let resultLabel = __sched.blockingTopLev;
-
-    // Restore the state back to what it was before starting the sandboxing
-
-    theThread.importState(threadState);
-
-    // __sched.raiseCurrentThreadPCToBlockingLev();
-
-    // 2019-01-31: AA; obs: this is subtle
-
-    // we check whether the thread is no longer scheduled
-    if (done || trapperInvoked || theThread.sleeping) {
-      if (done) {
-        theThread.returnInThread(ok(retVal, resultLabel));
-      } else {
-        if (theThread.sleeping) {
-          theThread.sleeping = false;
-          clearTimeout(theThread.timeoutObject);
+  rt_sandbox = mkBase((env, arg) => {
+    assertIsNTuple(arg, 2);
+    let theThread = __sched.__currentThread;
+    let threadState = theThread.exportState()
+  
+  
+    let done = false;
+    let trapperInvoked = false;
+  
+    let delay = arg.val[0];
+    let retVal = null;
+    raiseCurrentThreadPC(delay.lev);
+  
+    function mk_tupleVal(x) {
+      return theThread.mkVal(rt_mkTuple(x));
+    }
+  
+    function ok(x, l) {
+      let statusOk = __sched.__currentThread.mkValWithLev(true, l);
+      let y = rt_raisedToLev(x, l);
+      return mk_tupleVal([statusOk, y]);
+    }
+  
+    function bad(x, l) {
+      let statusBad = __sched.__currentThread.mkValWithLev(false, l);
+      let y = rt_raisedToLev(x, l);
+      return mk_tupleVal([statusBad, y])
+    }
+  
+    setTimeout(() => {
+      theThread.handlerState = new SandboxStatus.NORMAL();
+      let resultLabel = __sched.blockingTopLev;
+  
+      // Restore the state back to what it was before starting the sandboxing
+  
+      theThread.importState(threadState);
+  
+      // __sched.raiseCurrentThreadPCToBlockingLev();
+  
+      // 2019-01-31: AA; obs: this is subtle
+  
+      // we check whether the thread is no longer scheduled
+      if (done || trapperInvoked || theThread.sleeping) {
+        if (done) {
+          theThread.returnInThread(ok(retVal, resultLabel));
+        } else {
+          if (theThread.sleeping) {
+            theThread.sleeping = false;
+            clearTimeout(theThread.timeoutObject);
+          }
+          theThread.returnInThread(bad(__unit, resultLabel));
         }
+  
+        // because the thread has finished, we need 
+        // to push it back into the thread pool
+  
+        __sched.scheduleThreadT(theThread);
+        __sched.resumeLoopAsync();
+  
+      } else {
+        theThread.killCounter++;
+        // the thread is alive and is somewhere in the scheduler queue, so
+        // we just change its return kont
         theThread.returnInThread(bad(__unit, resultLabel));
       }
-
-      // because the thread has finished, we need 
-      // to push it back into the thread pool
-
-      __sched.scheduleThreadT(theThread);
-      __sched.resumeLoopAsync();
-
-    } else {
-      theThread.killCounter++;
-      // the thread is alive and is somewhere in the scheduler queue, so
-      // we just change its return kont
-      theThread.returnInThread(bad(__unit, resultLabel));
+    }, delay.val)
+  
+  
+    /*
+    let barrierClosure = new RtClosure ({ret:null}, null, (env, arg) => {  
+      retVal = arg;
+      done = true;
+    });
+    */
+  
+    let guard = (arg) => {
+      retVal = arg;
+      done = true;
     }
-  }, delay.val)
+  
+  
+    let trapper = mkBase((env, arg) => {
+      trapperInvoked = true;
+      retVal = __unit;
+    })
+  
+    // __sched.setret (barrierClosure);
+    __sched.__currentThread.callInThread(guard);
+    theThread.handlerState = new SandboxStatus.INSANDBOX(trapper);
+    theThread.barrierdepth = 0;
+    rt_tailcall(arg.val[1], __unit);
+  
+  }, "sandbox");
+
+}
+
+initStuf();
 
 
-  /*
-  let barrierClosure = new RtClosure ({ret:null}, null, (env, arg) => {  
-    retVal = arg;
-    done = true;
-  });
-  */
-
-  let guard = (arg) => {
-    retVal = arg;
-    done = true;
-  }
 
 
-  let trapper = mkBase((env, arg) => {
-    trapperInvoked = true;
-    retVal = __unit;
-  })
 
-  // __sched.setret (barrierClosure);
-  __sched.__currentThread.callInThread(guard);
-  theThread.handlerState = new SandboxStatus.INSANDBOX(trapper);
-  theThread.barrierdepth = 0;
-  rt_tailcall(arg.val[1], __unit);
-
-}, "sandbox")
-
-
-let rt_spawn = mkBase((env, larg) => {
+//vh
+rt_spawn = mkBase((env, larg) => {
   assertNormalState("spawn")
   // debug ("* rt rt_spawn *", larg.val, larg.lev);
   raiseCurrentThreadPC(larg.lev);
@@ -418,7 +472,9 @@ function persist(obj, path) {
   fs.writeFileSync(path, JSON.stringify(jsonObj));
 }
 
-let rt_save = mkBase((env, larg) => {
+
+//vh
+rt_save = mkBase((env, larg) => {
   assertIsNTuple(larg, 2);
   raiseCurrentThreadPC(larg.lev);
   let arg = larg.val;
@@ -426,10 +482,11 @@ let rt_save = mkBase((env, larg) => {
   let data = arg[1];
   persist(data, "./out/saved." + file + ".json")
   rt_ret(__unit);
-}, "save")
+}, "save");
 
 
-let rt_restore = mkBase((env, arg) => {
+//vh
+rt_restore = mkBase((env, arg) => {
   assertIsString(arg)
   let theThread = __sched.__currentThread;
   let file = arg;
@@ -443,7 +500,7 @@ let rt_restore = mkBase((env, arg) => {
     __sched.resumeLoopAsync();
 
   })()
-}, "restore")
+}, "restore");
 
 
 /**
@@ -532,7 +589,9 @@ function rt_sendMessageNochecks(lRecipientPid, message, ret = true) {
   }
 }
 
-let rt_send = mkBase((env, larg) => {
+
+//vh
+rt_send = mkBase((env, larg) => {
   raiseCurrentThreadPCToBlockingLev();
   assertNormalState("send")
   raiseCurrentThreadPC(larg.lev);
@@ -553,27 +612,6 @@ let rt_send = mkBase((env, larg) => {
 
 }, "send");
 
-/*
-function baseRcvWithBounds(env, arg) {
-  assertNormalState("receive")
-  assertIsNTuple(arg, 3);
-  assertIsLevel (arg.val[0]);
-  assertIsLevel (arg.val[1]);
-  assertIsList  (arg.val[2]);
-
-  raiseCurrentThreadPC(arg.lev);
-  let argv = arg.val;
-  if (Array.isArray(argv) && argv.length == 3) {
-    let lowb = argv[0];
-    let highb = argv[1];
-    let handlers = argv[2];
-    raiseCurrentThreadPC(lub(lowb.lev, highb.lev));
-    __theMailbox.rcv(lub(lowb.val, __sched.pc), highb.val, handlers);
-  } else {
-    debug("wrong number of arguments to rcv");
-  }
-}
-*/
 
 
 function okToDeclassify(levFrom, levTo, auth) {
@@ -658,23 +696,14 @@ function baseRcv(env, handlers) {
 
 }
 
+//vh
+rt_receive = mkBase(baseRcv);
+rt_rcvp = mkBase(receiveAtOneLevel);
+rt_rcv = mkBase(receiveBoundedRangeWithAuthority);
 
-let rt_receive = mkBase(baseRcv)
-let rt_rcvp = mkBase(receiveAtOneLevel)
-let rt_rcv = mkBase(receiveBoundedRangeWithAuthority)
 
-
-function formatToN(s, n) {
-  if (s.length < n) {
-    let j = s.length;
-    for (; j < n; j++) {
-      s = s + " ";
-    }
-  }
-  return s;
-}
-
-let rt_exit = mkBase((env, arg) => {
+//vh
+rt_exit = mkBase((env, arg) => {
   assertNormalState("exit");
   assertIsNTuple(arg, 2);
   assertIsAuthority(arg.val[0]);
@@ -682,18 +711,21 @@ let rt_exit = mkBase((env, arg) => {
   assertIsTopAuthority(arg.val[0]);
   cleanup();
   //process.exit(arg.val[1].val);
-}, "exit")
+}, "exit");
 
 
-let rt_getTime = mkBase((env, arg) => {
+//vh
+rt_getTime = mkBase((env, arg) => {
   assertIsUnit(arg)
   let d = new Date()
   let t = d.getTime()
   let v = new LVal(t, __sched.pc);
   rt_ret(v)
-})
+});
 
-let rt_printWithLabels = mkBase((env, arg) => {
+
+//vh
+rt_printWithLabels = mkBase((env, arg) => {
   log(
     __sched.__currentThread.mkCopy(arg).stringRep(false)
   );
@@ -702,8 +734,8 @@ let rt_printWithLabels = mkBase((env, arg) => {
 }, "printWithLabels");
 
 
-let rt_toString = mkBase((env, arg) => {
-
+//vh
+rt_toString = mkBase((env, arg) => {
   let taintRef = { lev: __sched.pc };
   let s = __sched.__currentThread.mkCopy(arg).stringRep
     (true,  // omit labels
@@ -712,10 +744,11 @@ let rt_toString = mkBase((env, arg) => {
 
   let r = __sched.__currentThread.mkValWithLev(s, taintRef.lev);
   rt_ret(r);
-}, "toString")
+}, "toString");
 
 
-let rt_toStringLabeled = mkBase((env, arg) => {
+//vh
+rt_toStringLabeled = mkBase((env, arg) => {
   let v = __sched.__currentThread.mkCopy(arg);
   let taintRef = { lev: __sched.pc };
 
@@ -729,11 +762,12 @@ let rt_toStringLabeled = mkBase((env, arg) => {
 
 
   rt_ret(r);
-}, "toStringLabeled")
+}, "toStringLabeled");
 
 
 
-let rt_print = mkBase((env, arg) => {
+//vh
+rt_print = mkBase((env, arg) => {
   log(
     // colors.green (formatToN ( "PID:" +  __sched.currentThreadId.stringRep(), 30)),
     // colors.green (formatToN ( "PC:" +  __sched.pc.stringRep(), 20)),
@@ -745,21 +779,26 @@ let rt_print = mkBase((env, arg) => {
 }, "print");
 
 
-let rt_printString = mkBase((env, arg) => {
+//vh
+rt_printString = mkBase((env, arg) => {
   assertIsString(arg);
   log(arg.val)
   rt_ret(__unit);
-}, "printString")
+}, "printString");
 
-let rt_writeString = mkBase((env, arg) => {
+
+
+//vh
+rt_writeString = mkBase((env, arg) => {
   assertIsString(arg);
   //todo: substitute below
   //process.stdout.write(arg.val)
   rt_ret(__unit);
-}, "writeString")
+}, "writeString");
 
 
-let rt_question = mkBase((env, arg) => {
+//vh
+rt_question = mkBase((env, arg) => {
   //readline.removeListener ('line', lineListener);
   //term.removeListener ('line', lineListener);
   let theThread = __sched.__currentThread;
@@ -778,9 +817,12 @@ let rt_question = mkBase((env, arg) => {
 
   })*/
 
-}, "question")
+}, "question");
 
-let rt_inputline = mkBase((env, arg) => {
+
+
+//vh
+rt_inputline = mkBase((env, arg) => {
   assertIsUnit(arg)
 
   let theThread = __sched.__currentThread;
@@ -802,12 +844,12 @@ let rt_inputline = mkBase((env, arg) => {
       __sched.resumeLoopAsync()
     })
   }
-}, "inputLine")
+}, "inputLine");
 
 
 
-
-let rt_debug = function (s) {
+//vh
+rt_debug = function (s) {
 
   let tid = __sched.__currentThread.tid.stringRep()
   let pid = __sched.pc.stringRep()
@@ -818,9 +860,10 @@ let rt_debug = function (s) {
     colors.red(formatToN("BL:" + bid, 20)),
     s
   );
-}
+};
 
-let rt_attenuate = mkBase((env, arg) => {
+//vh
+rt_attenuate = mkBase((env, arg) => {
   assertIsNTuple(arg, 2);
   let argv = arg.val;
   let authFrom = argv[0];
@@ -836,11 +879,12 @@ let rt_attenuate = mkBase((env, arg) => {
   let r = new LVal(new Authority(l_auth), l_meta)
 
   rt_ret(r)
-}, "attenuate")
+}, "attenuate");
 
 
 
-let rt_declassify = mkBase((env, arg) => {
+//vh
+rt_declassify = mkBase((env, arg) => {
   //  assertDeclassificationAllowed()// 2019-03-06: AA: allowing declassification everywhere?
   assertIsNTuple(arg, 3);
 
@@ -879,9 +923,10 @@ let rt_declassify = mkBase((env, arg) => {
     // return; // nothing scheduled; should be unreachabele
   }
 
-}, "declassify")
+}, "declassify");
 
-let rt_raiseTrust = mkBase((env, arg) => {
+//vh
+rt_raiseTrust = mkBase((env, arg) => {
   assertNormalState("raise trust");
   assertIsNTuple(arg, 3)
 
@@ -903,26 +948,27 @@ let rt_raiseTrust = mkBase((env, arg) => {
   let currentLevel = nodeTrustLevel(nodeId)
   _trustMap[nodeId] = lub(currentLevel, l_raise);
   rt_ret(__unit);
-}, "raiseTrust")
+}, "raiseTrust");
 
 
 /**
  * Returns a string corresponding to the node identify
  * from a process
  */
-let rt_nodeFromProcess = mkBase((env, arg) => {
+//vh
+ rt_nodeFromProcess = mkBase((env, arg) => {
   assertIsProcessId(arg);
   let data = arg.val;
   let nodeId = data.node.nodeId;
   let v = new LVal(nodeId, arg.lev);
   rt_ret(v);
-}, "node")
+}, "node");
 
 
 // TODO: check that the arguments to the register are actually pids
 
-let __theRegister = {}
-let rt_register = mkBase((env, arg) => {
+//vh
+rt_register = mkBase((env, arg) => {
   assertNormalState("register")
   assertIsNTuple(arg, 3);
   assertIsString(arg.val[0])
@@ -940,21 +986,12 @@ let rt_register = mkBase((env, arg) => {
 
   __theRegister[k] = v;
   rt_ret(__unit);
-}, "register")
-
-async function whereisFromRemote(k) {
-  __sched.resumeLoopAsync()
-  // TODO: 2018-10-20: make use of the levels as they were
-  // recorded during the registration (instead of the bottom here )
-  if (__theRegister[k]) {
-    // todo-api: localhost/../serialize
-    let serObj = SS.serialize(__theRegister[k], levels.BOT).data
-    return serObj
-  }
-}
+}, "register");
 
 
-let rt_whereis = mkBase((env, arg) => {
+
+//vh
+rt_whereis = mkBase((env, arg) => {
   assertNormalState("whereis")
 
   assertIsNTuple(arg, 2);
@@ -1000,8 +1037,36 @@ let rt_whereis = mkBase((env, arg) => {
 
     })()
   }
-}, "whereis")
+}, "whereis");
 
+//vh
+rt_ret = (arg) => __sched.returnInThread(arg);
+
+
+
+
+//fsp
+
+function formatToN(s, n) {
+  if (s.length < n) {
+    let j = s.length;
+    for (; j < n; j++) {
+      s = s + " ";
+    }
+  }
+  return s;
+}
+
+async function whereisFromRemote(k) {
+  __sched.resumeLoopAsync()
+  // TODO: 2018-10-20: make use of the levels as they were
+  // recorded during the registration (instead of the bottom here )
+  if (__theRegister[k]) {
+    // todo-api: localhost/../serialize
+    let serObj = SS.serialize(__theRegister[k], levels.BOT).data
+    return serObj
+  }
+}
 
 
 let baseMkSecret = function (env, x) {
@@ -1009,7 +1074,6 @@ let baseMkSecret = function (env, x) {
   rt_ret(new LVal(x.val, levels.TOP))
 }
 
-let rt_mkSecret = mkBase(baseMkSecret)
 
 let baseDisclose = function (env, x) {
   assertNormalState("baseDisclose");
@@ -1025,7 +1089,7 @@ let baseDisclose = function (env, x) {
   rt_ret(__unit);
 }
 
-let rt_adv = mkBase(baseDisclose)
+
 
 // --------------------------------------------------
 function rt_setret(namespace, kf, e) {
@@ -1075,7 +1139,8 @@ function threadError(s, internal = false) {
   return __sched.__currentThread.threadError(s, internal);
 }
 
-let rt_threadError = threadError;
+
+
 
 function rt_error(x) {
   threadError(x.val);
@@ -1101,9 +1166,6 @@ function rt_tailcall(lff, arg) {
   __sched.tail(ff.fun, ff.env, arg, ff.namespace);
 
 }
-
-let rt_ret = (arg) => __sched.returnInThread(arg);
-
 
 function runtimeEquals(o1, o2) {
   if (typeof o1.atom != "undefined" && typeof o2.atom != "undefined") {
@@ -1135,7 +1197,7 @@ function rt_linkLibs(libs, obj, cb) {
   loadLibs.loadLibsAsync(libs, obj, cb, rtObj);
 }
 
-let _trustMap = {}
+
 
 function nodeTrustLevel(nodeid) {
   if (_trustMap) {
@@ -1312,12 +1374,10 @@ function RuntimeObject() {
   this.glb = glb;
   this.error = rt_error;
   this.errorPos = rt_errorPos;
-  this.threadError = rt_threadError;
+  this.threadError = threadError;
   this.Closure = RtClosure;
   this.Env = RtEnv;
   this.setret = rt_setret
-
-
   // this.resetret = rt_resetret
   this.ret = rt_ret
   this.__unitbase = __unitbase
@@ -1329,17 +1389,11 @@ function RuntimeObject() {
   this.mkCopy = rt_mkCopy
   this.mkTuple = rt_mkTuple
   this.mkList = rt_mkList
-
   this.loadLib = rt_loadLib
-
   this.debug = rt_debug
-
   this.linkLibs = rt_linkLibs
-
   this.levels = levels
-
   this.persist = persist
-
   this.mkLabel = rt_mkLabel
   this.raisedTo = function (x, y) {
     return new LVal(x.val, lub(lub(x.lev, y.val), y.lev), lubs([x.tlev, y.tlev, __sched.pc]))
@@ -1382,8 +1436,8 @@ function RuntimeObject() {
   this.receive = rt_receive;
   this.rcvp = rt_rcvp;
   this.rcv = rt_rcv;
-  this.mkSecret = rt_mkSecret;
-  this.adv = rt_adv;
+  this.mkSecret = mkBase(baseMkSecret);
+  this.adv = mkBase(baseDisclose);
   this.register = rt_register;
   this.whereis = rt_whereis;
   this.exit = rt_exit;
@@ -1625,16 +1679,20 @@ function RuntimeObject() {
 
 
 
-const rtObj = new RuntimeObject();
+
+
 
 function mkRuntime() {
+  //todo: set check bool for if mkRuntime has been run - isRuntimeCreated
+  rtObj = new RuntimeObject();
+  debug(`Initialized RuntimeObject i.e. rtObj`);
+  __theMailbox.setRuntimeObject(rtObj);
+  debug(`Setting rtObj as rt in __theMailbox`);
+
+  __sched.setRuntimeObject(rtObj);
+  debug(`Setting rtObj as rt in __sched`);
   return rtObj;
 }
-
-__theMailbox.setRuntimeObject(rtObj);
-
-__sched.setRuntimeObject(rtObj);
-
 
 
 function cleanup(cb = () => { }) {
@@ -1669,6 +1727,8 @@ process.on('SIGINT', () => {
 */
 
 async function startRuntime(file) {
+  //todo: abort with a message if isRuntimeCreated is false
+
   // todo-api: localhost/../serialize
   SS.setRuntimeObj(rtObj);
   // debug ("runing with uuid:", rt_uuid)

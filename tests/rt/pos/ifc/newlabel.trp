@@ -1,4 +1,0 @@
-let val l = newlabel () 
-    val x = 42 raisedTo l 
-in x 
-end

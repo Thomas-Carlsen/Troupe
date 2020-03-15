@@ -1,5 +1,0 @@
-datatype Atoms = Plus | Minus
-let val _ = save (5, Plus) 
-    val x = restore (5)
-in x = Plus
-end 

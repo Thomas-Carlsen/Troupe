@@ -1,8 +1,0 @@
-(* Nested (* comments are ok *) *)
-
-let fun fib x =
-      if x > 2
-      then fib (x - 1) + fib (x - 2)
-      else 1
-in fib 10
-

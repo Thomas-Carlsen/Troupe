@@ -1,3 +1,0 @@
-let val x = 10 raisedTo {alice}
- in declassify (x , authority, {} )
- end 

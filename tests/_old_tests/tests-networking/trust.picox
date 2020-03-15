@@ -1,3 +1,0 @@
-let val n = node (self())
- in print n 
-end

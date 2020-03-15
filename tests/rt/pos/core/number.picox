@@ -1,3 +1,0 @@
-let fun foo () = 42
-in foo() 
-end 

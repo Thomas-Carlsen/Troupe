@@ -1,4 +1,0 @@
-let fun f () = print 2929
-    val pid = spawn(0, f) 
-in pid 
-end

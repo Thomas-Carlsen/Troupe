@@ -1,4 +1,0 @@
-let val f = restore (2)
-
-in (f (10), f(30))
-end

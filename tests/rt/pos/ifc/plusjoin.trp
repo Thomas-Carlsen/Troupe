@@ -1,4 +1,0 @@
-let val a = 42 raisedTo {alice}
-    val b = 10 raisedTo {bob}
-in if a > b then "gt" else "le"
-end

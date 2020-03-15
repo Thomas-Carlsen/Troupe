@@ -1,4 +1,0 @@
-let fun foo a b = (a,b)
-    val (x,y) = foo 10 20
-in x + y
-end

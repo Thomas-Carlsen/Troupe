@@ -1,4 +1,0 @@
-let fun sum [] s = s 
-      | sum (x::xs) s = sum xs (s+x)
-in sum [1,2,3] 0
-end

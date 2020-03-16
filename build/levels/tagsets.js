@@ -20,10 +20,16 @@ var debug = function (x) { return logger.debug(x); };
 var Level_js_1 = require("../Level.js");
 var TagLevel = /** @class */ (function (_super) {
     __extends(TagLevel, _super);
+    // have seen lev been assign to {} (when top) and new Set() (when bot)
     function TagLevel(lev) {
-        return _super.call(this, lev) || this;
+        var _this = _super.call(this, lev) || this;
+        debug("Created a new TagLevel: " + _this.stringRep());
+        return _this;
     }
     TagLevel.prototype.stringRep = function () {
+        // In case it is top level, which is an empty object
+        if (isEmpty(this.lev))
+            return "{}";
         var n = this.lev.size;
         var s = "{";
         var i = 0;
@@ -38,19 +44,17 @@ var TagLevel = /** @class */ (function (_super) {
     };
     return TagLevel;
 }(Level_js_1.Level));
-var topLevel = new TagLevel({});
-topLevel.stringRep = function () { return "{#TOP}"; };
-topLevel.isTop = true;
+function isEmpty(obj) {
+    return Object.keys(obj).length === 0 && obj.constructor === Object;
+}
 function lub(l1, l2) {
-    // return topLevel;
     if (l1 == topLevel || l2 == topLevel) {
         return topLevel;
     }
-    // debug (l1.lev.toString());
-    // debug (l2);
     var s = new Set();
     l1.lev.forEach(function (t) { return s.add(t); });
     l2.lev.forEach(function (t) { return s.add(t); });
+    debug("lub res:");
     return new TagLevel(s);
 }
 function glb(l1, l2) {
@@ -104,6 +108,11 @@ function fromString(str2) {
     });
     return new TagLevel(s);
 }
+// Why is the level for top not an empty set instead of an empty object literal?
+// Problem: You cannot .forEach on this object (used in stringRep)
+var topLevel = new TagLevel({});
+topLevel.stringRep = function () { return "{#TOP}"; };
+topLevel.isTop = true;
 var levels = {
     BOT: new TagLevel(new Set()),
     TOP: topLevel,

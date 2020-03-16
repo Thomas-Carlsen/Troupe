@@ -1,4 +1,9 @@
+import { mkLogger } from './logger.js';
 //import {mkRuntime, startRuntime} from './runtimeMonitored.js'
+
+
+const logger = mkLogger("Term");
+
 
 let term_options = {
     convertEol: true,
@@ -56,7 +61,9 @@ function deleteAtCursor() {
 async function runTroupe(args) {
     console.log("Running Troupe");
 
+    logger.debug(`Requiring runtimeMonitored.js`);
     const runt = require('./runtimeMonitored.js');
+    logger.debug(`Required runtimeMonitored.js`);
 
     // fake object to test program
     let rt = {};

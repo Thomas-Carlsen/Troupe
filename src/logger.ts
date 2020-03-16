@@ -8,10 +8,10 @@ class Logger {
         this.level = level;
     }
     //use unpack ...args
-    log(...args) {
-        term.write(args + "\n");
+    log(mess:string) {
+        term.write(mess + "\n");
         if (this.level = 'debug') 
-            console.log("log:" + this.caller + ": " + args);
+            console.log("log:" + this.caller + ": " + mess);
     }
     info(mess:string) {
         //console.info(this.caller + ": " + mess);
@@ -32,6 +32,6 @@ class Logger {
     }
 }
 
-export function mkLogger(caller:string, level="info") {
+export function mkLogger(caller:string, level="debug") {
     return new Logger(caller, level);
 }

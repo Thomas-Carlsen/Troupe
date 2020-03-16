@@ -1,31 +1,34 @@
-'use strict';
 //import { uuid as uuidv4} from './../../node_modules/uuidv4/build/lib/uuidv4.js';
 const uuidv4 = require('uuid/v4');
 
-
-import process from './process.js';
-import {BaseFunction} from './BaseFunction.js';
-import {LVal} from './Lval.js';
-import {Thread} from './Thread.js';
-import {HandlerState as SandboxStatus } from './SandboxStatus.js';
-import {ThreadError} from './ThreadError.js';
-import {theBaseUnit as __unitbase} from './UnitBase.js';
 import {mkLogger} from './logger.js';
+import process from './process.js';
+mkLogger("Scheduler").debug(`Imported process.js`);
+import {BaseFunction} from './BaseFunction.js';
+mkLogger("Scheduler").debug(`Imported BaseFunction.js`);
+import {LVal} from './Lval.js';
+mkLogger("Scheduler").debug(`Imported Lval.js`);
+import {Thread} from './Thread.js';
+mkLogger("Scheduler").debug(`Imported Thread.js`);
+import {HandlerState as SandboxStatus } from './SandboxStatus.js';
+mkLogger("Scheduler").debug(`Imported SandboxStatus.js`);
+import {ThreadError} from './ThreadError.js';
+mkLogger("Scheduler").debug(`Imported ThreadError.js`);
+import {theBaseUnit as __unitbase} from './UnitBase.js';
+mkLogger("Scheduler").debug(`Imported UnitBase.js`);
 import levels from './options.js';
+mkLogger("Scheduler").debug(`Imported options.js`);
+
+mkLogger('Scheduler').debug(`Imported modules`);
 
 
-const logger = mkLogger('scheduler');
+const logger = mkLogger('Scheduler');
 const info = x => logger.info(x)
 const debug = x => logger.debug(x);
-const log = (x, y) => logger.log(x, y);
+const log = x => logger.log(x);
 const STACKDEPTH = 50;
 
 let ProcessID = process.ProcessID;
-
-
-
-
-
 let lub = levels.lub;
 
 let TerminationStatus = {
@@ -46,6 +49,7 @@ class Scheduler {
     __node;
     __stopWhenAllThreadsAreDone;
     __stopRuntime;
+
     constructor(rt_uuid) {        
         this.rt_uuid = rt_uuid;
         this.__funloop = new Array()
@@ -54,33 +58,34 @@ class Scheduler {
         this.__currentThread = null; // current thread object
         this.stackcounter = 0;
         // the unit value 
-        this.__unit = new LVal (__unitbase, levels.BOT);
+        this.__unit = new LVal(__unitbase, levels.BOT);
     }
 
-    done  (arg)  {            
+    done(arg)  {            
         this.notifyMonitors();
         delete this.__alive [this.currentThreadId.val.toString()];              
     }
 
 
-    halt  (arg, persist=null)  {
+    halt(arg, persist=null) {
         this.raiseCurrentThreadPCToBlockingLev();
-        let retVal = this.mkCopy(arg);
-        this.notifyMonitors ();
+        let retVal = this.mkCopy(arg); //why is neccesary to make a copy?
+        this.notifyMonitors();
+        delete this.__alive[this.currentThreadId.val.toString()]; 
 
-        delete this.__alive[this.currentThreadId.val.toString()];            
-        log(">>> Main thread finished with value:", retVal.stringRep());
+        log(">>> Main thread finished with value: " + retVal.stringRep());
         if (persist) {
-            this.rtObj.persist (retVal, persist )
-            log ("Saved the result value in file", persist)
+            this.rtObj.persist(retVal, persist )
+            log("Saved the result value in file" + persist)
         }
     }
 
 
     
-    notifyMonitors (status = TerminationStatus.OK, errstr="" ) {
-        
-        let ids = Object.keys (this.__currentThread.monitors);
+    notifyMonitors(status = TerminationStatus.OK, errstr="" ) {
+        let ids = Object.keys(this.__currentThread.monitors);
+        console.log("notifyMonitors", ids);
+        debug(`notifyMonitors: ids=${ids}`);
         for ( let i = 0; i < ids.length; i ++ ) {            
             let id = ids[i];
             let toPid = this.__currentThread.monitors[id].pid; 
@@ -94,25 +99,25 @@ class Scheduler {
         }
     }
 
-    raiseCurrentThreadPC (l)  {        
+    raiseCurrentThreadPC(l)  {        
         this.__currentThread.raiseCurrentThreadPC(l);
     }
     
-    raiseCurrentThreadPCToBlockingLev (l="") {        
+    raiseCurrentThreadPCToBlockingLev(l?) {        
         this.__currentThread.raiseCurrentThreadPCToBlockingLev(l)
     }
 
 
-    raiseBlockingThreadLev (l) {   
+    raiseBlockingThreadLev(l) {   
         this.__currentThread.raiseBlockingThreadLev(l); 
     }
 
 
-    pinipush (l, cap) {        
+    pinipush(l, cap) {        
         this.__currentThread.pinipush(l, cap)        
     }
 
-    pinipop (cap) {
+    pinipop(cap) {
         return this.__currentThread.pinipop(cap); 
     }
 
@@ -120,12 +125,12 @@ class Scheduler {
         return this.__currentThread.mkVal (x);    
     }
     
-    mkValPos(x:string, p:string) {    
-        return this.__currentThread.mkValPos(x,p);    
+    mkValPos(val:string, pos:string) {    
+        return this.__currentThread.mkValPos(val, pos);    
     }
 
-    mkCopy (x) {
-        return this.__currentThread.mkCopy (x);
+    mkCopy(x) {
+        return this.__currentThread.mkCopy(x);
     }
 
     mkBase(f,name=null) {
@@ -133,10 +138,10 @@ class Scheduler {
     }
 
     initScheduler(node, stopWhenAllThreadsAreDone = false, stopRuntime = () => {}) {
-        
+        debug(`initScheduler: with nodeId ${node.nodeId}, stopWhenAllThreadsAreDone ${stopWhenAllThreadsAreDone} and stopRuntime ${stopRuntime.name}`);
         this.__node = node;
         this.__stopWhenAllThreadsAreDone = stopWhenAllThreadsAreDone;
-        this.__stopRuntime = () => { stopRuntime () }
+        this.__stopRuntime = () => { stopRuntime() }
     }
 
 
@@ -170,11 +175,11 @@ class Scheduler {
         return this.__currentThread.tid;
     }
 
-    set handlerState (st) {
+    set handlerState(st) {
         this.__currentThread.handlerState = st;        
     }
 
-    get handlerState () {
+    get handlerState() {
         return this.__currentThread.handlerState;
     }
 
@@ -190,25 +195,25 @@ class Scheduler {
 
   
     
-    tail (thefun, arg1, arg2, nm) {
+    tail(thefun, arg1, arg2, nm) {
         this.__currentThread.tailInThread (thefun, arg1, arg2, nm)
         this.stepThread ()
     }
     
-
-    returnInThread (arg) {        
+    // Probably called from rt_ret
+    returnInThread(arg) {        
         this.__currentThread.returnInThread(arg);
-        this.stepThread ();
+        this.stepThread();
     }
 
 
-
-    stepThread () {
+    stepThread() {
+        debug(`stepThread: stackcounter=${this.stackcounter}, STACKDEPTH=${STACKDEPTH}`);
         // console.log ( "FF ", this.__currentThread.theFun)
-        if (this.stackcounter ++ < STACKDEPTH) {        
-            this.__currentThread.next () ;
+        if (this.stackcounter++ < STACKDEPTH) {       
+            this.__currentThread.next() ;
         } else {
-            this.stackcounter = 0;            
+            this.stackcounter = 0;    
             this.scheduleThreadT(this.__currentThread);                
         }
     }
@@ -219,19 +224,23 @@ class Scheduler {
         return new LVal(pidObj, pcArg);
     }
 
-    scheduleNewThreadAtLevel (thefun, args, nm, levpc, levblock, ismain = false, persist=null) {
-        let newPid = this.createNewProcessIDAtLevel(levpc);
 
-        let halt = ismain ?  (arg)=> { this.halt (arg, persist) } : 
-                             (arg) => { this.done (arg) };
+    // Example of inputs:
+    // scheduleNewThreadAtLevel(file.main, [null, mainAuthority], file, levels.BOT, levels.BOT, true, persist);
+    scheduleNewThreadAtLevel(thefun, args, namespace, levpc, levblock, ismain = false, persist=null) {
+        
+        let newPid : LVal = this.createNewProcessIDAtLevel(levpc);
+        // Inside of halt was not been run after this
+        let halt = ismain ? (arg) => { this.halt(arg, persist) } : 
+                            (arg) => { this.done(arg) };
         
         
-        let t = new Thread( 
+        let t : Thread = new Thread( 
             newPid, 
             halt, 
             thefun, 
             args, 
-            nm, 
+            namespace,
             levpc, 
             levblock, 
             new SandboxStatus.NORMAL(), 
@@ -240,12 +249,12 @@ class Scheduler {
 
 
         this.__alive[newPid.val.toString()] = t;
-        this.scheduleThreadT (t)
+        this.scheduleThreadT(t);
         return newPid;
     }
 
     schedule(thefun, args, nm) {
-        this.__currentThread.runNext (thefun, args, nm);
+        this.__currentThread.runNext(thefun, args, nm);
         this.scheduleThreadT(this.__currentThread)
     }
 
@@ -298,17 +307,18 @@ class Scheduler {
     \*****************************************************************************/
 
     loop() {
-        // debug (`running scheduler loop with ${this.__funloop.length} many threads`)
+        debug(`running scheduler loop with ${this.__funloop.length} many threads`);
         const $$LOOPBOUND = 5000;
 
         for (let $$loopiter = 0; $$loopiter < $$LOOPBOUND && (this.__funloop.length > 0); $$loopiter++) {
-
-            let next = this.__funloop.shift();
+            let next : Thread = this.__funloop.shift();
             this.__currentThread = next;
-
-            let theFun = next.theFun;
+            //console.log("Does next have theFun???? - is it not a Thread?")
+            //console.log(next.theFun);
+            //let theFun = next.theFun; // This should not exist
 
             try {  
+                // This runs the function stored in the Thread
                 this.__currentThread.next();          
                 
             } catch (e) {
@@ -326,13 +336,14 @@ class Scheduler {
                     this.__currentThread.tailInThread (  f.fun, f.env, [], f.namespace ) ;
                     this.scheduleThreadT (this.__currentThread);
                 } else  { // a real runtime error, must be a bug
-                    console.log ("problems in the scheduler")
-                    console.log (theFun);
+                    console.log("problems in the scheduler")
+                    //console.log(theFun);
                     throw e;
                 }
             }
         }
 
+        debug(`Executing threads loop is done - size=${this.__funloop.length}`)
         if (this.__funloop.length > 0) {
             // we are not really done, but are just hacking around the V8's memory management
             this.resumeLoopAsync();

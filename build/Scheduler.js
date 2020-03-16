@@ -1,23 +1,32 @@
-'use strict';
+"use strict";
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 //import { uuid as uuidv4} from './../../node_modules/uuidv4/build/lib/uuidv4.js';
 var uuidv4 = require('uuid/v4');
-var process_js_1 = __importDefault(require("./process.js"));
-var BaseFunction_js_1 = require("./BaseFunction.js");
-var Lval_js_1 = require("./Lval.js");
-var Thread_js_1 = require("./Thread.js");
-var SandboxStatus_js_1 = require("./SandboxStatus.js");
-var ThreadError_js_1 = require("./ThreadError.js");
-var UnitBase_js_1 = require("./UnitBase.js");
 var logger_js_1 = require("./logger.js");
+var process_js_1 = __importDefault(require("./process.js"));
+logger_js_1.mkLogger("Scheduler").debug("Imported process.js");
+var BaseFunction_js_1 = require("./BaseFunction.js");
+logger_js_1.mkLogger("Scheduler").debug("Imported BaseFunction.js");
+var Lval_js_1 = require("./Lval.js");
+logger_js_1.mkLogger("Scheduler").debug("Imported Lval.js");
+var Thread_js_1 = require("./Thread.js");
+logger_js_1.mkLogger("Scheduler").debug("Imported Thread.js");
+var SandboxStatus_js_1 = require("./SandboxStatus.js");
+logger_js_1.mkLogger("Scheduler").debug("Imported SandboxStatus.js");
+var ThreadError_js_1 = require("./ThreadError.js");
+logger_js_1.mkLogger("Scheduler").debug("Imported ThreadError.js");
+var UnitBase_js_1 = require("./UnitBase.js");
+logger_js_1.mkLogger("Scheduler").debug("Imported UnitBase.js");
 var options_js_1 = __importDefault(require("./options.js"));
-var logger = logger_js_1.mkLogger('scheduler');
+logger_js_1.mkLogger("Scheduler").debug("Imported options.js");
+logger_js_1.mkLogger('Scheduler').debug("Imported modules");
+var logger = logger_js_1.mkLogger('Scheduler');
 var info = function (x) { return logger.info(x); };
 var debug = function (x) { return logger.debug(x); };
-var log = function (x, y) { return logger.log(x, y); };
+var log = function (x) { return logger.log(x); };
 var STACKDEPTH = 50;
 var ProcessID = process_js_1.default.ProcessID;
 var lub = options_js_1.default.lub;
@@ -43,19 +52,21 @@ var Scheduler = /** @class */ (function () {
     Scheduler.prototype.halt = function (arg, persist) {
         if (persist === void 0) { persist = null; }
         this.raiseCurrentThreadPCToBlockingLev();
-        var retVal = this.mkCopy(arg);
+        var retVal = this.mkCopy(arg); //why is neccesary to make a copy?
         this.notifyMonitors();
         delete this.__alive[this.currentThreadId.val.toString()];
-        log(">>> Main thread finished with value:", retVal.stringRep());
+        log(">>> Main thread finished with value: " + retVal.stringRep());
         if (persist) {
             this.rtObj.persist(retVal, persist);
-            log("Saved the result value in file", persist);
+            log("Saved the result value in file" + persist);
         }
     };
     Scheduler.prototype.notifyMonitors = function (status, errstr) {
         if (status === void 0) { status = TerminationStatus.OK; }
         if (errstr === void 0) { errstr = ""; }
         var ids = Object.keys(this.__currentThread.monitors);
+        console.log("notifyMonitors", ids);
+        debug("notifyMonitors: ids=" + ids);
         for (var i = 0; i < ids.length; i++) {
             var id = ids[i];
             var toPid = this.__currentThread.monitors[id].pid;
@@ -72,7 +83,6 @@ var Scheduler = /** @class */ (function () {
         this.__currentThread.raiseCurrentThreadPC(l);
     };
     Scheduler.prototype.raiseCurrentThreadPCToBlockingLev = function (l) {
-        if (l === void 0) { l = ""; }
         this.__currentThread.raiseCurrentThreadPCToBlockingLev(l);
     };
     Scheduler.prototype.raiseBlockingThreadLev = function (l) {
@@ -87,8 +97,8 @@ var Scheduler = /** @class */ (function () {
     Scheduler.prototype.mkVal = function (x) {
         return this.__currentThread.mkVal(x);
     };
-    Scheduler.prototype.mkValPos = function (x, p) {
-        return this.__currentThread.mkValPos(x, p);
+    Scheduler.prototype.mkValPos = function (val, pos) {
+        return this.__currentThread.mkValPos(val, pos);
     };
     Scheduler.prototype.mkCopy = function (x) {
         return this.__currentThread.mkCopy(x);
@@ -100,6 +110,7 @@ var Scheduler = /** @class */ (function () {
     Scheduler.prototype.initScheduler = function (node, stopWhenAllThreadsAreDone, stopRuntime) {
         if (stopWhenAllThreadsAreDone === void 0) { stopWhenAllThreadsAreDone = false; }
         if (stopRuntime === void 0) { stopRuntime = function () { }; }
+        debug("initScheduler: with nodeId " + node.nodeId + ", stopWhenAllThreadsAreDone " + stopWhenAllThreadsAreDone + " and stopRuntime " + stopRuntime.name);
         this.__node = node;
         this.__stopWhenAllThreadsAreDone = stopWhenAllThreadsAreDone;
         this.__stopRuntime = function () { stopRuntime(); };
@@ -163,11 +174,13 @@ var Scheduler = /** @class */ (function () {
         this.__currentThread.tailInThread(thefun, arg1, arg2, nm);
         this.stepThread();
     };
+    // Probably called from rt_ret
     Scheduler.prototype.returnInThread = function (arg) {
         this.__currentThread.returnInThread(arg);
         this.stepThread();
     };
     Scheduler.prototype.stepThread = function () {
+        debug("stepThread: stackcounter=" + this.stackcounter + ", STACKDEPTH=" + STACKDEPTH);
         // console.log ( "FF ", this.__currentThread.theFun)
         if (this.stackcounter++ < STACKDEPTH) {
             this.__currentThread.next();
@@ -182,14 +195,17 @@ var Scheduler = /** @class */ (function () {
         var pidObj = new ProcessID(this.rt_uuid, pid, this.__node);
         return new Lval_js_1.LVal(pidObj, pcArg);
     };
-    Scheduler.prototype.scheduleNewThreadAtLevel = function (thefun, args, nm, levpc, levblock, ismain, persist) {
+    // Example of inputs:
+    // scheduleNewThreadAtLevel(file.main, [null, mainAuthority], file, levels.BOT, levels.BOT, true, persist);
+    Scheduler.prototype.scheduleNewThreadAtLevel = function (thefun, args, namespace, levpc, levblock, ismain, persist) {
         var _this = this;
         if (ismain === void 0) { ismain = false; }
         if (persist === void 0) { persist = null; }
         var newPid = this.createNewProcessIDAtLevel(levpc);
+        // Inside of halt was not been run after this
         var halt = ismain ? function (arg) { _this.halt(arg, persist); } :
             function (arg) { _this.done(arg); };
-        var t = new Thread_js_1.Thread(newPid, halt, thefun, args, nm, levpc, levblock, new SandboxStatus_js_1.HandlerState.NORMAL(), this.rtObj);
+        var t = new Thread_js_1.Thread(newPid, halt, thefun, args, namespace, levpc, levblock, new SandboxStatus_js_1.HandlerState.NORMAL(), this.rtObj);
         this.__alive[newPid.val.toString()] = t;
         this.scheduleThreadT(t);
         return newPid;
@@ -235,13 +251,16 @@ var Scheduler = /** @class */ (function () {
 
     \*****************************************************************************/
     Scheduler.prototype.loop = function () {
-        // debug (`running scheduler loop with ${this.__funloop.length} many threads`)
+        debug("running scheduler loop with " + this.__funloop.length + " many threads");
         var $$LOOPBOUND = 5000;
         for (var $$loopiter = 0; $$loopiter < $$LOOPBOUND && (this.__funloop.length > 0); $$loopiter++) {
             var next = this.__funloop.shift();
             this.__currentThread = next;
-            var theFun = next.theFun;
+            //console.log("Does next have theFun???? - is it not a Thread?")
+            //console.log(next.theFun);
+            //let theFun = next.theFun; // This should not exist
             try {
+                // This runs the function stored in the Thread
                 this.__currentThread.next();
             }
             catch (e) {
@@ -261,11 +280,12 @@ var Scheduler = /** @class */ (function () {
                 }
                 else { // a real runtime error, must be a bug
                     console.log("problems in the scheduler");
-                    console.log(theFun);
+                    //console.log(theFun);
                     throw e;
                 }
             }
         }
+        debug("Executing threads loop is done - size=" + this.__funloop.length);
         if (this.__funloop.length > 0) {
             // we are not really done, but are just hacking around the V8's memory management
             this.resumeLoopAsync();

@@ -25,7 +25,7 @@ class ProcessID {
       this.stringRep = this.toString;
     }   
   
-    toString () {      
+    toString() {      
       let x = this.pid.toString();
       // console.log (x);
       return x;

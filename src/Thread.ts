@@ -6,7 +6,7 @@ import { ThreadError } from './ThreadError.js';
 import {mkLogger} from './logger.js';
 
 
-const logger = mkLogger('thread');
+const logger = mkLogger('Thread');
 const debug = x => logger.debug(x);
 let lub = levels.lub;
 
@@ -32,7 +32,7 @@ class Mailbox extends Array  {
 export class Thread {
     tid: any;    
     pc: any;
-    bl: any;
+    bl: any; // block level
     pinistack: any;
     pinidepth: any;
     handlerState: any;
@@ -42,16 +42,9 @@ export class Thread {
     timeoutObject: any;
     rtObj: any;
     mailbox: Mailbox;
-
     next :  () => void;
-
     callStack : any []
-
-
     _sp : number;
-
-    
-
 
     constructor(tid, ret, theFun, theArgs, namespace, pc, levblock, handlerState, rtObj) {
         this.tid = tid;    
@@ -66,12 +59,13 @@ export class Thread {
         this.timeoutObject = null;
         this.rtObj = rtObj;
         this._sp = 3;
-        this.callStack = [ pc, null
-                         , pc, ret ]   // auxiliary bottom element of the call stack; never called
-                                       // but is convenient for keeping track of the PC 
+        this.callStack = [ pc, null, pc, ret ]   // auxiliary bottom element of the call stack; never called
+                                                 // but is convenient for keeping track of the PC 
         this.mailbox = new Mailbox();
         this.next = () => {
-            theFun.apply (namespace, theArgs);
+            // Using apply will let namespace be 'this' in theFun
+            // Example of namespace: the file itself (or the Top func in the file)
+            theFun.apply(namespace, theArgs);
         }        
 
         // if (!pc) {
@@ -97,7 +91,7 @@ export class Thread {
    
 
 
-    exportState ()  {
+    exportState()  {
         //throw "ERROR - not implemented" // 2019-05-08 
         let state = {            
             pc  : this.pc,
@@ -127,7 +121,8 @@ export class Thread {
     }
 
 
-    addMonitor (pid, r) {        
+    
+    addMonitor(pid, r) {        
         this.monitors[r.val] = {pid: pid, uuid: r} 
     }
 
@@ -157,36 +152,35 @@ export class Thread {
     }
 
 
-    callInThread (cb) {
-        this.callStack.push (this.pc)
-        this.callStack.push ( cb ) 
+    callInThread(cb) {
+        this.callStack.push(this.pc);
+        this.callStack.push( cb );
         this._sp += 2;
     }
 
-    returnInThread (arg) {       
-        let rv = new LVal (arg.val
-                    ,  lub  (arg.lev, this.pc)
-                    ,  lub  (arg.tlev, this.pc));
-
-        let ret = this.callStack.pop ();
+    returnInThread(arg) {     
+        debug(`returnInThread: with pc=${this.pc.stringRep()}`);
+        let rv = new LVal(arg.val, lub(arg.lev, this.pc), lub(arg.tlev, this.pc));
+        debug(`returnInThread: Return val (rv) is ${rv.stringRep()}`);
+        debug(`CallStack of this thread is ${this.callStack}`);
+        let ret = this.callStack.pop();
         this.pc = this.callStack.pop();
-
         this._sp -= 2; 
         
         this.next = () => {
-            ret (rv);
+            ret(rv);
         }
     }
 
     
-    pcpush (l, cap) {
+    pcpush(l, cap) {
         this.raiseBlockingThreadLev(l.lev);        
         this.pinidepth ++;       
         this.pinistack.unshift ( { lev : this.bl, pc: this.pc, auth : l, cap: cap, purpose: 1 } );
     }
 
 
-    pcpop (arg) {
+    pcpop(arg) {
         if (this.pinidepth <= 0) {
             this.threadError ("unmatched pcpop");
         }
@@ -284,8 +278,8 @@ export class Thread {
         this.bl = lub (this.bl, l)        
     }
 
-    raiseCurrentThreadPCToBlockingLev (l) {        
-        this.pc = lub(this.pc, this.bl ) ;
+    raiseCurrentThreadPCToBlockingLev(l) {        
+        this.pc = lub(this.pc, this.bl );
     }
 
     raiseCurrentThreadPC (l)  {        
@@ -307,18 +301,15 @@ export class Thread {
         return new LVal(x, this.pc, this.pc );
     }
 
-    mkValPos(x: any, pos: string) {
-        return new LVal (x, this.pc, this.pc, pos);
+    mkValPos(val: any, pos: string) {
+        return new LVal(val, this.pc, this.pc, pos);
     }
 
     mkValWithLev(x, l) {            
-        
-        return new LVal ( x
-                        , lub(this.pc, l)
-                        , this.pc )              
+        return new LVal(x, lub(this.pc, l), this.pc );      
     }
 
-    mkCopy (x) {
+    mkCopy(x) {
         return new LVal(x.val, lub(x.lev, this.pc), lub (x.tlev, this.pc) )
     }
 

@@ -1,4 +1,3 @@
-'use strict'
 // External module
 const colors = require('./colors.js')
 const uuidv4 = require('uuid/v4');
@@ -13,34 +12,53 @@ const readline = require('readline').createInterface({
 */
 const { promisify } = require('util');
 
+
+
 // Internal runtime modules
-import { RtClosure } from './RtClosure.js';
-import { isListFlagSet, isTupleFlagSet } from './ValuesUtil.js';
 import { mkLogger } from './logger.js';
+mkLogger("RTM").debug(`Importing internal modules`);
+import { RtClosure } from './RtClosure.js';
+mkLogger("RTM").debug(`Imported RtClosure.js`);
+import { isListFlagSet, isTupleFlagSet } from './ValuesUtil.js';
+mkLogger("RTM").debug(`Imported ValuesUtil.js`);
 // an attempt to modularize the runtime; 2018-07-16; AA
 //
 import Scheduler from './Scheduler.js';
+mkLogger("RTM").debug(`Imported Scheduler.js`);
 import { LVal } from './Lval.js';
+mkLogger("RTM").debug(`Imported Lval.js`);
 import proc from './process.js';
-import { MailboxProcessor } from './MailboxProcessor.js'
+mkLogger("RTM").debug(`Imported process.js`);
+import { MailboxProcessor } from './MailboxProcessor.js';
+mkLogger("RTM").debug(`Imported MailboxProcessor.js`);
 import { NodeManager } from './NodeManager.js';
+mkLogger("RTM").debug(`Imported NodeManager.js`);
 import loadLibs from './loadLibs.js';
+mkLogger("RTM").debug(`Imported loadLibs.js`);
 import { BaseFunction } from './BaseFunction.js';
+mkLogger("RTM").debug(`Imported BaseFunction.js`);
 import { HandlerState as SandboxStatus } from './SandboxStatus.js';
+mkLogger("RTM").debug(`Imported SandboxStatus.js`);
 import { Authority } from './Authority.js';
+mkLogger("RTM").debug(`Imported Authority.js`);
 import options from './options.js';
+mkLogger("RTM").debug(`Imported options.js`);
 import { Level } from './Level.js';
+mkLogger("RTM").debug(`Imported Level.js`);
 import { theBaseUnit as __unitbase } from './UnitBase.js';
+mkLogger("RTM").debug(`Imported UnitBase.js`);
 import SS from './serialize.js';
+mkLogger("RTM").debug(`Imported serialize.js`);
 import { startp2p } from './p2p/p2p.js';
+mkLogger("RTM").debug(`Imported p2p.js`);
 
-
+mkLogger("RTM").debug(`Imported modules in runtime`);
 
 // GLOBALS
 let __sched;
 let __theMailbox;
 let aliases;
-let __nodeManager
+let __nodeManager;
 let localNode;
 //const readFile = promisify (fs.readFile);
 const rt_uuid = uuidv4();
@@ -50,7 +68,7 @@ const logger = mkLogger('RTM', logLevel);
 const error = x => logger.error(x)
 const info = x => logger.info(x)
 const debug = (x, err?) => logger.debug(x)
-const log = (...args) => logger.log(args);
+const log = (mess) => logger.log(mess);
 //todo: change this to termjs
 const lineBuffer = [];
 const readlineCallbacks = [];
@@ -112,7 +130,7 @@ let raiseCurrentBlockingThreadLev;
 let currentThreadPid;
 
 
-
+debug(`Created GLOBALS`);
 
 
 // CLASSES 
@@ -130,6 +148,8 @@ class LibEnv {
 }
 
 
+debug(`Created CLASSES`);
+
 
 
 
@@ -146,9 +166,6 @@ function lineListener(input) {
 
 //readline.on ('line', lineListener)
 //term.on('line', lineListener);
-
-
-
 
 
 
@@ -277,193 +294,8 @@ function rt_raisedToLev(x, y) {
 }
 
 
-function initStuf(){
-  debug(`Initializing`);
-  __sched = new Scheduler(rt_uuid);
-  debug(`Initialized Scheduler i.e. __sched`);
-  __theMailbox = new MailboxProcessor(__sched);
-  debug(`Initialized MailboxProcessor i.e. __theMailbox`);
-
-  //todo: fix yargs
-  aliases = {} /*yargs.argv.aliases
-                  ? JSON.parse ( fs.readFileSync(yargs.argv.aliases))
-                  : {}*/
-  __nodeManager = new NodeManager(levels, aliases); // 2019-01-03: todo: use options; AA
-  debug(`Initialized NodeManager i.e. __nodeManager`);
 
 
-  mkBase = (f, name = null) => __sched.mkBase(f, name);
-  rt_mkVal = (x) => __sched.mkVal(x);
-  rt_mkValPos = (x: string, p: string) => __sched.mkValPos(x, p);
-  rt_mkCopy = (x) => __sched.mkCopy(x);
-  raiseCurrentThreadPC = (l) => __sched.__currentThread.raiseCurrentThreadPC(l);
-  raiseCurrentThreadPCToBlockingLev = (l?) => __sched.__currentThread.raiseCurrentThreadPCToBlockingLev(l);
-  raiseCurrentBlockingThreadLev = (l) => __sched.__currentThread.raiseBlockingThreadLev(l);
-  currentThreadPid = () => __sched.currentThreadId;
-  __unit = __sched.__unit;
-
-
-  rt_self = mkBase((env, arg) => {
-    // debug ("* rt self", currentPid);
-    rt_ret(currentThreadPid());
-  }, "self");
-  
-  rt_sleep = mkBase((env, arg) => {
-    assertIsNumber(arg);
-    let delay = arg.val;
-    let theThread = __sched.__currentThread;
-    theThread.sleeping = true;
-    theThread.timeoutObject =
-      setTimeout(() => {
-        __sched.__currentThread = theThread;   // probably unnecessary because we don't create any labeled values here.
-        theThread.sleeping = false;
-        theThread.timeoutObject = null;
-        theThread.returnInThread(__unit);
-  
-        __sched.scheduleThreadT(theThread);
-        __sched.resumeLoopAsync();
-  
-      }, delay)
-  }, "sleep");
-
-  rt_sandbox = mkBase((env, arg) => {
-    assertIsNTuple(arg, 2);
-    let theThread = __sched.__currentThread;
-    let threadState = theThread.exportState()
-  
-  
-    let done = false;
-    let trapperInvoked = false;
-  
-    let delay = arg.val[0];
-    let retVal = null;
-    raiseCurrentThreadPC(delay.lev);
-  
-    function mk_tupleVal(x) {
-      return theThread.mkVal(rt_mkTuple(x));
-    }
-  
-    function ok(x, l) {
-      let statusOk = __sched.__currentThread.mkValWithLev(true, l);
-      let y = rt_raisedToLev(x, l);
-      return mk_tupleVal([statusOk, y]);
-    }
-  
-    function bad(x, l) {
-      let statusBad = __sched.__currentThread.mkValWithLev(false, l);
-      let y = rt_raisedToLev(x, l);
-      return mk_tupleVal([statusBad, y])
-    }
-  
-    setTimeout(() => {
-      theThread.handlerState = new SandboxStatus.NORMAL();
-      let resultLabel = __sched.blockingTopLev;
-  
-      // Restore the state back to what it was before starting the sandboxing
-  
-      theThread.importState(threadState);
-  
-      // __sched.raiseCurrentThreadPCToBlockingLev();
-  
-      // 2019-01-31: AA; obs: this is subtle
-  
-      // we check whether the thread is no longer scheduled
-      if (done || trapperInvoked || theThread.sleeping) {
-        if (done) {
-          theThread.returnInThread(ok(retVal, resultLabel));
-        } else {
-          if (theThread.sleeping) {
-            theThread.sleeping = false;
-            clearTimeout(theThread.timeoutObject);
-          }
-          theThread.returnInThread(bad(__unit, resultLabel));
-        }
-  
-        // because the thread has finished, we need 
-        // to push it back into the thread pool
-  
-        __sched.scheduleThreadT(theThread);
-        __sched.resumeLoopAsync();
-  
-      } else {
-        theThread.killCounter++;
-        // the thread is alive and is somewhere in the scheduler queue, so
-        // we just change its return kont
-        theThread.returnInThread(bad(__unit, resultLabel));
-      }
-    }, delay.val)
-  
-  
-    /*
-    let barrierClosure = new RtClosure ({ret:null}, null, (env, arg) => {  
-      retVal = arg;
-      done = true;
-    });
-    */
-  
-    let guard = (arg) => {
-      retVal = arg;
-      done = true;
-    }
-  
-  
-    let trapper = mkBase((env, arg) => {
-      trapperInvoked = true;
-      retVal = __unit;
-    })
-  
-    // __sched.setret (barrierClosure);
-    __sched.__currentThread.callInThread(guard);
-    theThread.handlerState = new SandboxStatus.INSANDBOX(trapper);
-    theThread.barrierdepth = 0;
-    rt_tailcall(arg.val[1], __unit);
-  
-  }, "sandbox");
-
-}
-
-initStuf();
-
-
-
-
-
-//vh
-rt_spawn = mkBase((env, larg) => {
-  assertNormalState("spawn")
-  // debug ("* rt rt_spawn *", larg.val, larg.lev);
-  raiseCurrentThreadPC(larg.lev);
-  let arg = larg.val;
-
-  function spawnLocal(arg) {
-    // debug ("scheduled rt_spawn ", arg.fun);
-
-    let newPid = __sched.scheduleNewThreadAtLevel(
-      arg.fun,
-      [arg.env, __unit],
-      arg.namespace,
-      __sched.pc,
-      __sched.blockingTopLev)
-    rt_ret(newPid);
-  }
-
-
-  if (Array.isArray(arg)) {
-    if (__nodeManager.isLocalNode(arg[0].val)) { // check if we are at the same node or note
-      // debug ("SAME NODE")
-      raiseCurrentThreadPC(lub(arg[0].lev, arg[1].lev));
-      assertIsFunction(arg[1]);
-      spawnLocal(arg[1].val)
-    } else {
-      assertIsNode(arg[0]);
-      assertIsFunction(arg[1]);
-      return spawnAtNode(arg[0], arg[1])
-    }
-  } else {
-    assertIsFunction(larg);
-    spawnLocal(arg)
-  }
-}, "spawn");
 
 
 function persist(obj, path) {
@@ -473,34 +305,6 @@ function persist(obj, path) {
 }
 
 
-//vh
-rt_save = mkBase((env, larg) => {
-  assertIsNTuple(larg, 2);
-  raiseCurrentThreadPC(larg.lev);
-  let arg = larg.val;
-  let file = arg[0].val;
-  let data = arg[1];
-  persist(data, "./out/saved." + file + ".json")
-  rt_ret(__unit);
-}, "save");
-
-
-//vh
-rt_restore = mkBase((env, arg) => {
-  assertIsString(arg)
-  let theThread = __sched.__currentThread;
-  let file = arg;
-
-  (async () => {
-    let jsonStr = await fs.promises.readFile("./out/saved." + file.val + ".json");
-    // todo-api: localhost/../serialize
-    let data = await SS.deserializeAsync(levels.TOP, JSON.parse(jsonStr));
-    theThread.returnInThread(data);
-    __sched.scheduleThreadT(theThread);
-    __sched.resumeLoopAsync();
-
-  })()
-}, "restore");
 
 
 /**
@@ -590,27 +394,564 @@ function rt_sendMessageNochecks(lRecipientPid, message, ret = true) {
 }
 
 
-//vh
-rt_send = mkBase((env, larg) => {
-  raiseCurrentThreadPCToBlockingLev();
-  assertNormalState("send")
-  raiseCurrentThreadPC(larg.lev);
-  assertIsNTuple(larg, 2);
-  assertIsProcessId(larg.val[0]);
-  let arg = larg.val;
-  // we need to check whether the recipient process is local
-  // if yes, then we just proceed by adding the message to the
-  // local mailbox; otherwise we need to proceed to serialization
-  // external call.
 
-  let lRecipientPid = arg[0];
-  // debug ("* rt rt_send *", lRecipientPid);
-  raiseCurrentThreadPC(lRecipientPid.lev); // this feels a bit odd.
-  let message = arg[1];
+function initRuntime() {
+  debug(`Initializing`);
+  __sched = new Scheduler(rt_uuid);
+  debug(`Initialized Scheduler i.e. __sched`);
+  __theMailbox = new MailboxProcessor(__sched);
+  debug(`Initialized MailboxProcessor i.e. __theMailbox`);
 
-  rt_sendMessageNochecks(lRecipientPid, message)
+  //todo: fix yargs
+  aliases = {} /*yargs.argv.aliases
+                  ? JSON.parse ( fs.readFileSync(yargs.argv.aliases))
+                  : {}*/
+  __nodeManager = new NodeManager(levels, aliases); // 2019-01-03: todo: use options; AA
+  debug(`Initialized NodeManager i.e. __nodeManager`);
 
-}, "send");
+
+  mkBase = (f, name = null) => __sched.mkBase(f, name);
+  rt_mkVal = (x) => __sched.mkVal(x);
+  rt_mkValPos = (val: string, pos: string) => __sched.mkValPos(val, pos);
+  rt_mkCopy = (x) => __sched.mkCopy(x);
+  raiseCurrentThreadPC = (l) => __sched.__currentThread.raiseCurrentThreadPC(l);
+  raiseCurrentThreadPCToBlockingLev = (l?) => __sched.__currentThread.raiseCurrentThreadPCToBlockingLev(l);
+  raiseCurrentBlockingThreadLev = (l) => __sched.__currentThread.raiseBlockingThreadLev(l);
+  currentThreadPid = () => __sched.currentThreadId;
+  __unit = __sched.__unit;
+
+
+  rt_self = mkBase((env, arg) => {
+    // debug ("* rt self", currentPid);
+    rt_ret(currentThreadPid());
+  }, "self");
+
+  rt_sleep = mkBase((env, arg) => {
+    assertIsNumber(arg);
+    let delay = arg.val;
+    let theThread = __sched.__currentThread;
+    theThread.sleeping = true;
+    theThread.timeoutObject =
+      setTimeout(() => {
+        __sched.__currentThread = theThread;   // probably unnecessary because we don't create any labeled values here.
+        theThread.sleeping = false;
+        theThread.timeoutObject = null;
+        theThread.returnInThread(__unit);
+
+        __sched.scheduleThreadT(theThread);
+        __sched.resumeLoopAsync();
+
+      }, delay)
+  }, "sleep");
+
+  rt_sandbox = mkBase((env, arg) => {
+    assertIsNTuple(arg, 2);
+    let theThread = __sched.__currentThread;
+    let threadState = theThread.exportState()
+
+
+    let done = false;
+    let trapperInvoked = false;
+
+    let delay = arg.val[0];
+    let retVal = null;
+    raiseCurrentThreadPC(delay.lev);
+
+    function mk_tupleVal(x) {
+      return theThread.mkVal(rt_mkTuple(x));
+    }
+
+    function ok(x, l) {
+      let statusOk = __sched.__currentThread.mkValWithLev(true, l);
+      let y = rt_raisedToLev(x, l);
+      return mk_tupleVal([statusOk, y]);
+    }
+
+    function bad(x, l) {
+      let statusBad = __sched.__currentThread.mkValWithLev(false, l);
+      let y = rt_raisedToLev(x, l);
+      return mk_tupleVal([statusBad, y])
+    }
+
+    setTimeout(() => {
+      theThread.handlerState = new SandboxStatus.NORMAL();
+      let resultLabel = __sched.blockingTopLev;
+
+      // Restore the state back to what it was before starting the sandboxing
+
+      theThread.importState(threadState);
+
+      // __sched.raiseCurrentThreadPCToBlockingLev();
+
+      // 2019-01-31: AA; obs: this is subtle
+
+      // we check whether the thread is no longer scheduled
+      if (done || trapperInvoked || theThread.sleeping) {
+        if (done) {
+          theThread.returnInThread(ok(retVal, resultLabel));
+        } else {
+          if (theThread.sleeping) {
+            theThread.sleeping = false;
+            clearTimeout(theThread.timeoutObject);
+          }
+          theThread.returnInThread(bad(__unit, resultLabel));
+        }
+
+        // because the thread has finished, we need 
+        // to push it back into the thread pool
+
+        __sched.scheduleThreadT(theThread);
+        __sched.resumeLoopAsync();
+
+      } else {
+        theThread.killCounter++;
+        // the thread is alive and is somewhere in the scheduler queue, so
+        // we just change its return kont
+        theThread.returnInThread(bad(__unit, resultLabel));
+      }
+    }, delay.val)
+
+
+    /*
+    let barrierClosure = new RtClosure ({ret:null}, null, (env, arg) => {  
+      retVal = arg;
+      done = true;
+    });
+    */
+
+    let guard = (arg) => {
+      retVal = arg;
+      done = true;
+    }
+
+
+    let trapper = mkBase((env, arg) => {
+      trapperInvoked = true;
+      retVal = __unit;
+    })
+
+    // __sched.setret (barrierClosure);
+    __sched.__currentThread.callInThread(guard);
+    theThread.handlerState = new SandboxStatus.INSANDBOX(trapper);
+    theThread.barrierdepth = 0;
+    rt_tailcall(arg.val[1], __unit);
+
+  }, "sandbox");
+
+  rt_spawn = mkBase((env, larg) => {
+    assertNormalState("spawn")
+    // debug ("* rt rt_spawn *", larg.val, larg.lev);
+    raiseCurrentThreadPC(larg.lev);
+    let arg = larg.val;
+
+    function spawnLocal(arg) {
+      // debug ("scheduled rt_spawn ", arg.fun);
+
+      let newPid = __sched.scheduleNewThreadAtLevel(
+        arg.fun,
+        [arg.env, __unit],
+        arg.namespace,
+        __sched.pc,
+        __sched.blockingTopLev)
+      rt_ret(newPid);
+    }
+
+
+    if (Array.isArray(arg)) {
+      if (__nodeManager.isLocalNode(arg[0].val)) { // check if we are at the same node or note
+        // debug ("SAME NODE")
+        raiseCurrentThreadPC(lub(arg[0].lev, arg[1].lev));
+        assertIsFunction(arg[1]);
+        spawnLocal(arg[1].val)
+      } else {
+        assertIsNode(arg[0]);
+        assertIsFunction(arg[1]);
+        return spawnAtNode(arg[0], arg[1])
+      }
+    } else {
+      assertIsFunction(larg);
+      spawnLocal(arg)
+    }
+  }, "spawn");
+
+
+  rt_save = mkBase((env, larg) => {
+    assertIsNTuple(larg, 2);
+    raiseCurrentThreadPC(larg.lev);
+    let arg = larg.val;
+    let file = arg[0].val;
+    let data = arg[1];
+    persist(data, "./out/saved." + file + ".json")
+    rt_ret(__unit);
+  }, "save");
+
+
+  rt_restore = mkBase((env, arg) => {
+    assertIsString(arg)
+    let theThread = __sched.__currentThread;
+    let file = arg;
+
+    (async () => {
+      let jsonStr = await fs.promises.readFile("./out/saved." + file.val + ".json");
+      // todo-api: localhost/../serialize
+      let data = await SS.deserializeAsync(levels.TOP, JSON.parse(jsonStr));
+      theThread.returnInThread(data);
+      __sched.scheduleThreadT(theThread);
+      __sched.resumeLoopAsync();
+
+    })()
+  }, "restore");
+
+  rt_send = mkBase((env, larg) => {
+    raiseCurrentThreadPCToBlockingLev();
+    assertNormalState("send")
+    raiseCurrentThreadPC(larg.lev);
+    assertIsNTuple(larg, 2);
+    assertIsProcessId(larg.val[0]);
+    let arg = larg.val;
+    // we need to check whether the recipient process is local
+    // if yes, then we just proceed by adding the message to the
+    // local mailbox; otherwise we need to proceed to serialization
+    // external call.
+
+    let lRecipientPid = arg[0];
+    // debug ("* rt rt_send *", lRecipientPid);
+    raiseCurrentThreadPC(lRecipientPid.lev); // this feels a bit odd.
+    let message = arg[1];
+
+    rt_sendMessageNochecks(lRecipientPid, message)
+
+  }, "send");
+
+  
+  rt_receive = mkBase(baseRcv);
+  rt_rcvp = mkBase(receiveAtOneLevel);
+  rt_rcv = mkBase(receiveBoundedRangeWithAuthority);
+
+
+  rt_exit = mkBase((env, arg) => {
+    assertNormalState("exit");
+    assertIsNTuple(arg, 2);
+    assertIsAuthority(arg.val[0]);
+    assertIsNumber(arg.val[1]);
+    assertIsTopAuthority(arg.val[0]);
+    cleanup();
+    //process.exit(arg.val[1].val);
+  }, "exit");
+
+
+  rt_getTime = mkBase((env, arg) => {
+    assertIsUnit(arg)
+    let d = new Date()
+    let t = d.getTime()
+    let v = new LVal(t, __sched.pc);
+    rt_ret(v)
+  });
+
+
+  rt_printWithLabels = mkBase((env, arg) => {
+    log(
+      __sched.__currentThread.mkCopy(arg).stringRep(false)
+    );
+
+    rt_ret(__unit);
+  }, "printWithLabels");
+
+
+  
+  rt_toString = mkBase((env, arg) => {
+    let taintRef = { lev: __sched.pc };
+    let s = __sched.__currentThread.mkCopy(arg).stringRep
+      (true,  // omit labels
+        taintRef  // accumulate taint into this reference
+      )
+
+    let r = __sched.__currentThread.mkValWithLev(s, taintRef.lev);
+    rt_ret(r);
+  }, "toString");
+
+
+  
+  rt_toStringLabeled = mkBase((env, arg) => {
+    let v = __sched.__currentThread.mkCopy(arg);
+    let taintRef = { lev: __sched.pc };
+
+    let s = v.stringRep(false,  // do not omit labels 
+      taintRef  // accumulate taint into this reference
+    )
+
+
+
+    let r = __sched.__currentThread.mkValWithLev(s, taintRef.lev);
+
+
+    rt_ret(r);
+  }, "toStringLabeled");
+
+
+  rt_print = mkBase((env, arg) => {
+    log(
+      // colors.green (formatToN ( "PID:" +  __sched.currentThreadId.stringRep(), 30)),
+      // colors.green (formatToN ( "PC:" +  __sched.pc.stringRep(), 20)),
+      // colors.green (formatToN ( "BL:" +  __sched.blockingTopLev.stringRep(), 20)),
+      arg.stringRep(true)
+    );
+
+    rt_ret(__unit);
+  }, "print");
+
+
+  rt_printString = mkBase((env, arg) => {
+    assertIsString(arg);
+    log(arg.val)
+    rt_ret(__unit);
+  }, "printString");
+
+
+  rt_writeString = mkBase((env, arg) => {
+    assertIsString(arg);
+    //todo: substitute below
+    //process.stdout.write(arg.val)
+    rt_ret(__unit);
+  }, "writeString");
+
+  rt_question = mkBase((env, arg) => {
+    //readline.removeListener ('line', lineListener);
+    //term.removeListener ('line', lineListener);
+    let theThread = __sched.__currentThread;
+
+    assertIsString(arg);
+    theThread.raiseBlockingThreadLev(levels.TOP)
+
+    /*
+    readline.question (arg.val, (s) => {
+      let r = theThread.mkValWithLev (s, levels.TOP)
+      theThread.returnInThread (r)
+      __sched.scheduleThreadT(theThread);
+      __sched.resumeLoopAsync()
+  
+      readline.on ('line', lineListener)
+  
+    })*/
+
+  }, "question");
+
+
+  rt_inputline = mkBase((env, arg) => {
+    assertIsUnit(arg)
+
+    let theThread = __sched.__currentThread;
+    theThread.raiseBlockingThreadLev(levels.TOP)
+
+
+
+    if (lineBuffer.length > 0) {
+      let s = lineBuffer.shift();
+      let r = theThread.mkValWithLev(s, levels.TOP);
+
+      rt_ret(r);
+    } else {
+      readlineCallbacks.push((s) => {
+
+        let r = theThread.mkValWithLev(s, levels.TOP)
+        theThread.returnInThread(r)
+        __sched.scheduleThreadT(theThread);
+        __sched.resumeLoopAsync()
+      })
+    }
+  }, "inputLine");
+
+
+  rt_debug = function (s) {
+
+    let tid = __sched.__currentThread.tid.stringRep()
+    let pid = __sched.pc.stringRep()
+    let bid = __sched.blockingTopLev.stringRep()
+    log(
+      colors.red(formatToN("PID:" + tid, 50)) + " " +
+      colors.red(formatToN("PC:" + pid, 20)) + " " +
+      colors.red(formatToN("BL:" + bid, 20)) + " " +
+      s 
+    );
+  };
+
+  rt_attenuate = mkBase((env, arg) => {
+    assertIsNTuple(arg, 2);
+    let argv = arg.val;
+    let authFrom = argv[0];
+    assertIsAuthority(authFrom);
+    let levTo = argv[1];
+    assertIsLevel(levTo);
+
+    let ok_to_attenuate = flowsTo(levTo.val, authFrom.val.authorityLevel);
+
+    // todo: 2018-10-18: AA; are we missing anything?
+    let l_meta = lubs([__sched.pc, arg.lev, authFrom.lev, levTo.lev])
+    let l_auth = ok_to_attenuate ? levTo.val : levels.BOT;
+    let r = new LVal(new Authority(l_auth), l_meta)
+
+    rt_ret(r)
+  }, "attenuate");
+
+
+  rt_declassify = mkBase((env, arg) => {
+    //  assertDeclassificationAllowed()// 2019-03-06: AA: allowing declassification everywhere?
+    assertIsNTuple(arg, 3);
+
+    let argv = arg.val;
+    let data = argv[0];
+
+    let auth = argv[1];
+    assertIsAuthority(auth);
+
+    let toLevV = argv[2];
+    assertIsLevel(toLevV);
+
+    let pc = __sched.pc;
+
+    let levFrom = data.lev;
+
+    // check that levFrom ⊑ auth ⊔ levTo
+    let _l = lubs([auth.val.authorityLevel, toLevV.val]);
+
+
+    let ok_to_declassify =
+      flowsTo(levFrom, _l)
+
+    if (ok_to_declassify) {
+      // we need to collect all the restrictions
+      let r = new LVal(data.val, lubs([toLevV.val, toLevV.lev, pc, arg.lev, auth.lev]));
+      rt_ret(r) // schedule the return value
+    } else {
+      let errorMessage =
+        "Not enough authority for declassification\n" +
+        ` | level of the data: ${data.lev.stringRep()}\n` +
+        ` | level of the authority: ${auth.val.authorityLevel.stringRep()}\n` +
+        ` | target level of the declassification: ${toLevV.val.stringRep()}`
+      threadError(errorMessage);
+
+      // return; // nothing scheduled; should be unreachabele
+    }
+
+  }, "declassify");
+
+  rt_raiseTrust = mkBase((env, arg) => {
+    assertNormalState("raise trust");
+    assertIsNTuple(arg, 3)
+
+    let argv = arg.val;
+    let data = argv[0];
+    assertIsString(data);
+
+    let authFrom = argv[1];
+    assertIsAuthority(authFrom);
+    assertIsTopAuthority(authFrom); // AA; 2019-03-07: may be a bit pessimistic, but okay for now
+    let levTo = argv[2];
+    assertIsLevel(levTo);
+
+    let ok_to_raise = flowsTo(levTo.val, authFrom.val.authorityLevel);
+    // AA, 2018-10-20 : beware that no information flow is enforced here
+    // let l_meta = lubs ([__sched.pc, arg.lev, authFrom.lev, levTo.lev])
+    let l_raise = ok_to_raise ? levTo.val : levels.BOT;
+    let nodeId = data.val;
+    let currentLevel = nodeTrustLevel(nodeId)
+    _trustMap[nodeId] = lub(currentLevel, l_raise);
+    rt_ret(__unit);
+  }, "raiseTrust");
+
+
+  /**
+   * Returns a string corresponding to the node identify
+   * from a process
+   */
+  rt_nodeFromProcess = mkBase((env, arg) => {
+    assertIsProcessId(arg);
+    let data = arg.val;
+    let nodeId = data.node.nodeId;
+    let v = new LVal(nodeId, arg.lev);
+    rt_ret(v);
+  }, "node");
+
+
+  // TODO: check that the arguments to the register are actually pids
+
+  rt_register = mkBase((env, arg) => {
+    assertNormalState("register")
+    assertIsNTuple(arg, 3);
+    assertIsString(arg.val[0])
+    assertIsProcessId(arg.val[1]);
+
+    assertIsAuthority(arg.val[2]);
+    assertIsTopAuthority(arg.val[2]);
+
+    // TODO: 2018-07-29: info flow checks
+    // this is needed, because registration
+    // is stateful
+
+    let k = arg.val[0].val;
+    let v = arg.val[1];
+
+    __theRegister[k] = v;
+    rt_ret(__unit);
+  }, "register");
+
+  rt_whereis = mkBase((env, arg) => {
+    assertNormalState("whereis")
+
+    assertIsNTuple(arg, 2);
+    assertIsNode(arg.val[0]);
+    assertIsString(arg.val[1]);
+    raiseCurrentBlockingThreadLev(arg.val[0].lev);
+    raiseCurrentBlockingThreadLev(arg.val[1].lev);
+
+
+    // let n = dealias(arg.val[0].val);    
+    let n = __nodeManager.getNode(arg.val[0].val).nodeId;
+
+    let k = arg.val[1].val;
+
+    let nodeLev = nodeTrustLevel(n);
+    let theThread = __sched.__currentThread;
+
+    let okToLookup = flowsTo(lubs([__sched.pc, arg.val[0].lev, arg.val[1].lev]), nodeLev);
+    if (!okToLookup) {
+      threadError("Information flow violation in whereis");
+      return;
+    }
+
+    if (__nodeManager.isLocalNode(n)) {
+      if (__theRegister[k]) {
+        rt_ret(theThread.mkVal(__theRegister[k]))
+      }
+    } else {
+      (async () => {
+        try {
+          let body1 = await localNode.whereisp2p(n, k);
+          // todo-api: localhost/../serialize
+          let body = await SS.deserializeAsync(nodeTrustLevel(n), body1);
+          let pid = new ProcessID(body.val.uuid, body.val.pid, body.val.node);
+
+          theThread.returnInThread(theThread.mkValWithLev(pid, body.lev));
+          __sched.scheduleThreadT(theThread);
+          __sched.resumeLoopAsync();
+
+        } catch (err) {
+          debug("whereis error: " + err.toString())
+        }
+
+      })()
+    }
+  }, "whereis");
+
+  // is it always taken a LVal as input?
+  rt_ret = (arg) => __sched.returnInThread(arg);
+
+
+}
+
+initRuntime();
+
+
 
 
 
@@ -696,356 +1037,7 @@ function baseRcv(env, handlers) {
 
 }
 
-//vh
-rt_receive = mkBase(baseRcv);
-rt_rcvp = mkBase(receiveAtOneLevel);
-rt_rcv = mkBase(receiveBoundedRangeWithAuthority);
 
-
-//vh
-rt_exit = mkBase((env, arg) => {
-  assertNormalState("exit");
-  assertIsNTuple(arg, 2);
-  assertIsAuthority(arg.val[0]);
-  assertIsNumber(arg.val[1]);
-  assertIsTopAuthority(arg.val[0]);
-  cleanup();
-  //process.exit(arg.val[1].val);
-}, "exit");
-
-
-//vh
-rt_getTime = mkBase((env, arg) => {
-  assertIsUnit(arg)
-  let d = new Date()
-  let t = d.getTime()
-  let v = new LVal(t, __sched.pc);
-  rt_ret(v)
-});
-
-
-//vh
-rt_printWithLabels = mkBase((env, arg) => {
-  log(
-    __sched.__currentThread.mkCopy(arg).stringRep(false)
-  );
-
-  rt_ret(__unit);
-}, "printWithLabels");
-
-
-//vh
-rt_toString = mkBase((env, arg) => {
-  let taintRef = { lev: __sched.pc };
-  let s = __sched.__currentThread.mkCopy(arg).stringRep
-    (true,  // omit labels
-      taintRef  // accumulate taint into this reference
-    )
-
-  let r = __sched.__currentThread.mkValWithLev(s, taintRef.lev);
-  rt_ret(r);
-}, "toString");
-
-
-//vh
-rt_toStringLabeled = mkBase((env, arg) => {
-  let v = __sched.__currentThread.mkCopy(arg);
-  let taintRef = { lev: __sched.pc };
-
-  let s = v.stringRep(false,  // do not omit labels 
-    taintRef  // accumulate taint into this reference
-  )
-
-
-
-  let r = __sched.__currentThread.mkValWithLev(s, taintRef.lev);
-
-
-  rt_ret(r);
-}, "toStringLabeled");
-
-
-
-//vh
-rt_print = mkBase((env, arg) => {
-  log(
-    // colors.green (formatToN ( "PID:" +  __sched.currentThreadId.stringRep(), 30)),
-    // colors.green (formatToN ( "PC:" +  __sched.pc.stringRep(), 20)),
-    // colors.green (formatToN ( "BL:" +  __sched.blockingTopLev.stringRep(), 20)),
-    arg.stringRep(true)
-  );
-
-  rt_ret(__unit);
-}, "print");
-
-
-//vh
-rt_printString = mkBase((env, arg) => {
-  assertIsString(arg);
-  log(arg.val)
-  rt_ret(__unit);
-}, "printString");
-
-
-
-//vh
-rt_writeString = mkBase((env, arg) => {
-  assertIsString(arg);
-  //todo: substitute below
-  //process.stdout.write(arg.val)
-  rt_ret(__unit);
-}, "writeString");
-
-
-//vh
-rt_question = mkBase((env, arg) => {
-  //readline.removeListener ('line', lineListener);
-  //term.removeListener ('line', lineListener);
-  let theThread = __sched.__currentThread;
-
-  assertIsString(arg);
-  theThread.raiseBlockingThreadLev(levels.TOP)
-
-  /*
-  readline.question (arg.val, (s) => {
-    let r = theThread.mkValWithLev (s, levels.TOP)
-    theThread.returnInThread (r)
-    __sched.scheduleThreadT(theThread);
-    __sched.resumeLoopAsync()
-
-    readline.on ('line', lineListener)
-
-  })*/
-
-}, "question");
-
-
-
-//vh
-rt_inputline = mkBase((env, arg) => {
-  assertIsUnit(arg)
-
-  let theThread = __sched.__currentThread;
-  theThread.raiseBlockingThreadLev(levels.TOP)
-
-
-
-  if (lineBuffer.length > 0) {
-    let s = lineBuffer.shift();
-    let r = theThread.mkValWithLev(s, levels.TOP);
-
-    rt_ret(r);
-  } else {
-    readlineCallbacks.push((s) => {
-
-      let r = theThread.mkValWithLev(s, levels.TOP)
-      theThread.returnInThread(r)
-      __sched.scheduleThreadT(theThread);
-      __sched.resumeLoopAsync()
-    })
-  }
-}, "inputLine");
-
-
-
-//vh
-rt_debug = function (s) {
-
-  let tid = __sched.__currentThread.tid.stringRep()
-  let pid = __sched.pc.stringRep()
-  let bid = __sched.blockingTopLev.stringRep()
-  log(
-    colors.red(formatToN("PID:" + tid, 50)),
-    colors.red(formatToN("PC:" + pid, 20)),
-    colors.red(formatToN("BL:" + bid, 20)),
-    s
-  );
-};
-
-//vh
-rt_attenuate = mkBase((env, arg) => {
-  assertIsNTuple(arg, 2);
-  let argv = arg.val;
-  let authFrom = argv[0];
-  assertIsAuthority(authFrom);
-  let levTo = argv[1];
-  assertIsLevel(levTo);
-
-  let ok_to_attenuate = flowsTo(levTo.val, authFrom.val.authorityLevel);
-
-  // todo: 2018-10-18: AA; are we missing anything?
-  let l_meta = lubs([__sched.pc, arg.lev, authFrom.lev, levTo.lev])
-  let l_auth = ok_to_attenuate ? levTo.val : levels.BOT;
-  let r = new LVal(new Authority(l_auth), l_meta)
-
-  rt_ret(r)
-}, "attenuate");
-
-
-
-//vh
-rt_declassify = mkBase((env, arg) => {
-  //  assertDeclassificationAllowed()// 2019-03-06: AA: allowing declassification everywhere?
-  assertIsNTuple(arg, 3);
-
-  let argv = arg.val;
-  let data = argv[0];
-
-  let auth = argv[1];
-  assertIsAuthority(auth);
-
-  let toLevV = argv[2];
-  assertIsLevel(toLevV);
-
-  let pc = __sched.pc;
-
-  let levFrom = data.lev;
-
-  // check that levFrom ⊑ auth ⊔ levTo
-  let _l = lubs([auth.val.authorityLevel, toLevV.val]);
-
-
-  let ok_to_declassify =
-    flowsTo(levFrom, _l)
-
-  if (ok_to_declassify) {
-    // we need to collect all the restrictions
-    let r = new LVal(data.val, lubs([toLevV.val, toLevV.lev, pc, arg.lev, auth.lev]));
-    rt_ret(r) // schedule the return value
-  } else {
-    let errorMessage =
-      "Not enough authority for declassification\n" +
-      ` | level of the data: ${data.lev.stringRep()}\n` +
-      ` | level of the authority: ${auth.val.authorityLevel.stringRep()}\n` +
-      ` | target level of the declassification: ${toLevV.val.stringRep()}`
-    threadError(errorMessage);
-
-    // return; // nothing scheduled; should be unreachabele
-  }
-
-}, "declassify");
-
-//vh
-rt_raiseTrust = mkBase((env, arg) => {
-  assertNormalState("raise trust");
-  assertIsNTuple(arg, 3)
-
-  let argv = arg.val;
-  let data = argv[0];
-  assertIsString(data);
-
-  let authFrom = argv[1];
-  assertIsAuthority(authFrom);
-  assertIsTopAuthority(authFrom); // AA; 2019-03-07: may be a bit pessimistic, but okay for now
-  let levTo = argv[2];
-  assertIsLevel(levTo);
-
-  let ok_to_raise = flowsTo(levTo.val, authFrom.val.authorityLevel);
-  // AA, 2018-10-20 : beware that no information flow is enforced here
-  // let l_meta = lubs ([__sched.pc, arg.lev, authFrom.lev, levTo.lev])
-  let l_raise = ok_to_raise ? levTo.val : levels.BOT;
-  let nodeId = data.val;
-  let currentLevel = nodeTrustLevel(nodeId)
-  _trustMap[nodeId] = lub(currentLevel, l_raise);
-  rt_ret(__unit);
-}, "raiseTrust");
-
-
-/**
- * Returns a string corresponding to the node identify
- * from a process
- */
-//vh
- rt_nodeFromProcess = mkBase((env, arg) => {
-  assertIsProcessId(arg);
-  let data = arg.val;
-  let nodeId = data.node.nodeId;
-  let v = new LVal(nodeId, arg.lev);
-  rt_ret(v);
-}, "node");
-
-
-// TODO: check that the arguments to the register are actually pids
-
-//vh
-rt_register = mkBase((env, arg) => {
-  assertNormalState("register")
-  assertIsNTuple(arg, 3);
-  assertIsString(arg.val[0])
-  assertIsProcessId(arg.val[1]);
-
-  assertIsAuthority(arg.val[2]);
-  assertIsTopAuthority(arg.val[2]);
-
-  // TODO: 2018-07-29: info flow checks
-  // this is needed, because registration
-  // is stateful
-
-  let k = arg.val[0].val;
-  let v = arg.val[1];
-
-  __theRegister[k] = v;
-  rt_ret(__unit);
-}, "register");
-
-
-
-//vh
-rt_whereis = mkBase((env, arg) => {
-  assertNormalState("whereis")
-
-  assertIsNTuple(arg, 2);
-  assertIsNode(arg.val[0]);
-  assertIsString(arg.val[1]);
-  raiseCurrentBlockingThreadLev(arg.val[0].lev);
-  raiseCurrentBlockingThreadLev(arg.val[1].lev);
-
-
-  // let n = dealias(arg.val[0].val);    
-  let n = __nodeManager.getNode(arg.val[0].val).nodeId;
-
-  let k = arg.val[1].val;
-
-  let nodeLev = nodeTrustLevel(n);
-  let theThread = __sched.__currentThread;
-
-  let okToLookup = flowsTo(lubs([__sched.pc, arg.val[0].lev, arg.val[1].lev]), nodeLev);
-  if (!okToLookup) {
-    threadError("Information flow violation in whereis");
-    return;
-  }
-
-  if (__nodeManager.isLocalNode(n)) {
-    if (__theRegister[k]) {
-      rt_ret(theThread.mkVal(__theRegister[k]))
-    }
-  } else {
-    (async () => {
-      try {
-        let body1 = await localNode.whereisp2p(n, k);
-        // todo-api: localhost/../serialize
-        let body = await SS.deserializeAsync(nodeTrustLevel(n), body1);
-        let pid = new ProcessID(body.val.uuid, body.val.pid, body.val.node);
-
-        theThread.returnInThread(theThread.mkValWithLev(pid, body.lev));
-        __sched.scheduleThreadT(theThread);
-        __sched.resumeLoopAsync();
-
-      } catch (err) {
-        debug("whereis error: " + err.toString())
-      }
-
-    })()
-  }
-}, "whereis");
-
-//vh
-rt_ret = (arg) => __sched.returnInThread(arg);
-
-
-
-
-//fsp
 
 function formatToN(s, n) {
   if (s.length < n) {
@@ -1753,6 +1745,7 @@ async function startRuntime(file) {
     // will call back to our starting function
     //
     file.loadlibs(() => {
+      debug(`Declaring cb for loadlibs of file STARTED`);
       // debug ("callback ok");
 
       // obs; 2018-03-10;aa: the order of these
@@ -1763,11 +1756,13 @@ async function startRuntime(file) {
       __sched.initScheduler(__nodeManager.getLocalNode(), stopWhenAllThreadsAreDone, cleanup);
 
       let mainAuthority = new LVal(new Authority(levels.TOP), levels.BOT);
+      debug(`Created mainAuthority`);
 
-
+      // Creating a new process and thread and put the thread inside the funloop of the schedulor
+      debug(`scheduleNewThreadAtLevel: thefun=main args=[null, mainAuthority] nm=file levpc=BOT levblock=BOT ismain=true, persist=null`);
       __sched.scheduleNewThreadAtLevel(
         file.main,
-        [null, mainAuthority],
+        [null, mainAuthority], // Arguments to main - env=null, authorityarg=mainAuthority
         file,
         levels.BOT,
         levels.BOT,
@@ -1775,9 +1770,12 @@ async function startRuntime(file) {
         persist
       );
 
+      // This is the execution part (takes Threads out of the funloop and executes them)
       __sched.loop();
 
-    })
+
+      debug(`Declaring cb for loadlibs of file ENDED`);
+    });
   }
 
   const rtHandlers = {
@@ -1824,8 +1822,10 @@ async function startRuntime(file) {
   }
 
 
+  //nodeIdFIle is a JSON file with predefined keys and node id
   //todo: yargs
   const nodeIdFile = null //yargs.argv.id ? yargs.argv.id : null;
+
 
 
   // START!
@@ -1859,4 +1859,4 @@ async function startRuntime(file) {
 }
 
 
-export {mkRuntime, startRuntime}
+export { mkRuntime, startRuntime }

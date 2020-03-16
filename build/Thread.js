@@ -21,7 +21,7 @@ var options_js_1 = __importDefault(require("./options.js"));
 var Lval_js_1 = require("./Lval.js");
 var ThreadError_js_1 = require("./ThreadError.js");
 var logger_js_1 = require("./logger.js");
-var logger = logger_js_1.mkLogger('thread');
+var logger = logger_js_1.mkLogger('Thread');
 var debug = function (x) { return logger.debug(x); };
 var lub = options_js_1.default.lub;
 var Mailbox = /** @class */ (function (_super) {
@@ -56,11 +56,12 @@ var Thread = /** @class */ (function () {
         this.timeoutObject = null;
         this.rtObj = rtObj;
         this._sp = 3;
-        this.callStack = [pc, null,
-            pc, ret]; // auxiliary bottom element of the call stack; never called
+        this.callStack = [pc, null, pc, ret]; // auxiliary bottom element of the call stack; never called
         // but is convenient for keeping track of the PC 
         this.mailbox = new Mailbox();
         this.next = function () {
+            // Using apply will let namespace be 'this' in theFun
+            // Example of namespace: the file itself (or the Top func in the file)
             theFun.apply(namespace, theArgs);
         };
         // if (!pc) {
@@ -133,7 +134,10 @@ var Thread = /** @class */ (function () {
         this._sp += 2;
     };
     Thread.prototype.returnInThread = function (arg) {
+        debug("returnInThread: with pc=" + this.pc.stringRep());
         var rv = new Lval_js_1.LVal(arg.val, lub(arg.lev, this.pc), lub(arg.tlev, this.pc));
+        debug("returnInThread: Return val (rv) is " + rv.stringRep());
+        debug("CallStack of this thread is " + this.callStack);
         var ret = this.callStack.pop();
         this.pc = this.callStack.pop();
         this._sp -= 2;
@@ -253,8 +257,8 @@ var Thread = /** @class */ (function () {
     Thread.prototype.mkVal = function (x) {
         return new Lval_js_1.LVal(x, this.pc, this.pc);
     };
-    Thread.prototype.mkValPos = function (x, pos) {
-        return new Lval_js_1.LVal(x, this.pc, this.pc, pos);
+    Thread.prototype.mkValPos = function (val, pos) {
+        return new Lval_js_1.LVal(val, this.pc, this.pc, pos);
     };
     Thread.prototype.mkValWithLev = function (x, l) {
         return new Lval_js_1.LVal(x, lub(this.pc, l), this.pc);

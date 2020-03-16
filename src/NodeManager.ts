@@ -1,4 +1,3 @@
-'use strict'
 import {mkLogger} from './logger.js'
 const logger = mkLogger("NodeManager");
 
@@ -14,13 +13,15 @@ class NodeManager {
     localNode;
     levels;
     aliases;
-    constructor (levels, aliases) {
+    constructor(levels, aliases) {
+        logger.debug(`Created new NodeManager with levels ${levels} and aliases ${aliases}`)
         this.localNode = null;
         this.levels = levels;
         this.aliases = aliases
     }
 
     setLocalHostPort(h)  {
+        logger.debug(`setLocalHostPort: Sets localNode to be a new Node with nodeId ${h}`)
         if (this.localNode != null) {
             logger.error("local port already set. quitting...");
             //process.exit(1);
@@ -33,7 +34,7 @@ class NodeManager {
     }
 
     getNode(nodeName) {
-        if (nodeName.startsWith ("@")) {
+        if (nodeName.startsWith("@")) {
             nodeName = this.aliases[nodeName.substring(1)];
         }
         // TODO: error handling in case aliases are not available; 2020-01-31

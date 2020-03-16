@@ -7,14 +7,10 @@ var Logger = /** @class */ (function () {
         this.level = level;
     }
     //use unpack ...args
-    Logger.prototype.log = function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
-        term_js_1.term.write(args + "\n");
+    Logger.prototype.log = function (mess) {
+        term_js_1.term.write(mess + "\n");
         if (this.level = 'debug')
-            console.log("log:" + this.caller + ": " + args);
+            console.log("log:" + this.caller + ": " + mess);
     };
     Logger.prototype.info = function (mess) {
         //console.info(this.caller + ": " + mess);
@@ -35,7 +31,7 @@ var Logger = /** @class */ (function () {
     return Logger;
 }());
 function mkLogger(caller, level) {
-    if (level === void 0) { level = "info"; }
+    if (level === void 0) { level = "debug"; }
     return new Logger(caller, level);
 }
 exports.mkLogger = mkLogger;

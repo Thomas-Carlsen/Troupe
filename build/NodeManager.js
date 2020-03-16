@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var logger_js_1 = require("./logger.js");
 var logger = logger_js_1.mkLogger("NodeManager");
@@ -10,11 +10,13 @@ var Node = /** @class */ (function () {
 }());
 var NodeManager = /** @class */ (function () {
     function NodeManager(levels, aliases) {
+        logger.debug("Created new NodeManager with levels " + levels + " and aliases " + aliases);
         this.localNode = null;
         this.levels = levels;
         this.aliases = aliases;
     }
     NodeManager.prototype.setLocalHostPort = function (h) {
+        logger.debug("setLocalHostPort: Sets localNode to be a new Node with nodeId " + h);
         if (this.localNode != null) {
             logger.error("local port already set. quitting...");
             //process.exit(1);

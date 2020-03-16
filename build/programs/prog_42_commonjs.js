@@ -9,8 +9,11 @@ function Top(rt) {
     this.loadlibs = function (cb) { rt.linkLibs(this.libs, this, cb); };
     this.serializedatoms = "AQAAAAAAAAAA";
     this.main = function ($env, $$authorityarg) {
+        // mkValPos make a LVal with val=42 and posInfo=':1:1'
+        // Such put types on gensyms
         var gensym1 = rt.mkValPos(42, ':1:1');
         ;
+        // This is the halt function within the Scheduler
         rt.ret(gensym1);
     };
     this.main.deps = [];

@@ -1,5 +1,4 @@
 "use strict";
-//import {mkRuntime, startRuntime} from './runtimeMonitored.js'
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -37,6 +36,9 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+var logger_js_1 = require("./logger.js");
+//import {mkRuntime, startRuntime} from './runtimeMonitored.js'
+var logger = logger_js_1.mkLogger("Term");
 var term_options = {
     convertEol: true,
     cursorBlink: true,
@@ -87,7 +89,9 @@ function runTroupe(args) {
         var runt, rt, file, top;
         return __generator(this, function (_a) {
             console.log("Running Troupe");
+            logger.debug("Requiring runtimeMonitored.js");
             runt = require('./runtimeMonitored.js');
+            logger.debug("Required runtimeMonitored.js");
             rt = {};
             rt.rt_uuid = 2;
             rt.linkLibs = function (a, b, c) { return a; };

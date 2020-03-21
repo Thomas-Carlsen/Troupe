@@ -17,6 +17,7 @@ var Logger = /** @class */ (function () {
         term_js_1.term.write(this.caller + ": " + mess + "\n");
     };
     Logger.prototype.debug = function (mess) {
+        return;
         if (this.level == 'debug') {
             term_js_1.term.write("debug:" + this.caller + ": " + mess + "\n");
             //console.log("debug:" + this.caller + ": " + mess);

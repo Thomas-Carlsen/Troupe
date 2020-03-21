@@ -156,6 +156,8 @@ var rt_register;
 var rt_whereis;
 var rt_exit;
 var __unit;
+// My Features
+var rt_localStorage;
 var raiseCurrentThreadPC;
 var raiseCurrentThreadPCToBlockingLev;
 var raiseCurrentBlockingThreadLev;
@@ -805,6 +807,10 @@ function initRuntime() {
     }, "whereis");
     // is it always taken a LVal as input?
     rt_ret = function (arg) { return __sched.returnInThread(arg); };
+    rt_localStorage = mkBase(function (env, arg) {
+        log('localStorage');
+        rt_ret(__unit);
+    }, "localStorage");
 }
 initRuntime();
 function okToDeclassify(levFrom, levTo, auth) {

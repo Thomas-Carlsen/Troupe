@@ -35,7 +35,11 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
+var axios_1 = __importDefault(require("axios"));
 var logger_js_1 = require("./logger.js");
 //import {mkRuntime, startRuntime} from './runtimeMonitored.js'
 var logger = logger_js_1.mkLogger("Term");
@@ -97,7 +101,7 @@ function runTroupe(args) {
             rt.linkLibs = function (a, b, c) { return a; };
             rt.ret = function (a) { term.write("\n" + a); };
             rt.mkValPos = function (a, b) { return a; };
-            file = require('./programs/prog_42_commonjs.js');
+            file = require('./programs/fib.js');
             top = new file(runt.mkRuntime());
             runt.startRuntime(top);
             return [2 /*return*/];
@@ -119,7 +123,7 @@ function helpOptions() {
 }
 function handleCommand(line_str) {
     return __awaiter(this, void 0, void 0, function () {
-        var line, command, _a;
+        var line, command, _a, runt, rt, txt, module_1, Top, pp, rt, top_1;
         return __generator(this, function (_b) {
             switch (_b.label) {
                 case 0:
@@ -132,23 +136,52 @@ function handleCommand(line_str) {
                         case "help": return [3 /*break*/, 1];
                         case "troupe": return [3 /*break*/, 2];
                         case "p2p": return [3 /*break*/, 4];
+                        case "compile": return [3 /*break*/, 6];
                     }
-                    return [3 /*break*/, 6];
+                    return [3 /*break*/, 10];
                 case 1:
                     term.write(helpOptions());
-                    return [3 /*break*/, 7];
+                    return [3 /*break*/, 11];
                 case 2: return [4 /*yield*/, runTroupe(line.splice(1))];
                 case 3:
                     _b.sent();
-                    return [3 /*break*/, 7];
+                    return [3 /*break*/, 11];
                 case 4: return [4 /*yield*/, p2pTest()];
                 case 5:
                     _b.sent();
-                    return [3 /*break*/, 7];
+                    return [3 /*break*/, 11];
                 case 6:
+                    runt = require('./runtimeMonitored.js');
+                    rt = {};
+                    rt.rt_uuid = 2;
+                    rt.linkLibs = function (a, b, c) { return a; };
+                    rt.ret = function (a) { term.write("\n" + a); };
+                    rt.mkValPos = function (a, b) { return a; };
+                    console.log("calling server");
+                    return [4 /*yield*/, axios_1.default.get('http://localhost:3000/compile')];
+                case 7:
+                    txt = _b.sent();
+                    console.log("received from server");
+                    module_1 = {};
+                    Top = new Function('"use strict";return (' + txt.data + ')');
+                    //let Top = txt.data;
+                    console.log(Top);
+                    console.log("running rt");
+                    pp = new Top(rt);
+                    console.log(pp);
+                    return [4 /*yield*/, runt.mkRuntime()];
+                case 8:
+                    rt = _b.sent();
+                    top_1 = new Top(rt);
+                    console.log(top_1);
+                    return [4 /*yield*/, runt.startRuntime(top_1)];
+                case 9:
+                    _b.sent();
+                    return [3 /*break*/, 11];
+                case 10:
                     term.write("Do not recognise command '" + command + "'. Type 'help' to see options\n");
-                    _b.label = 7;
-                case 7: return [2 /*return*/];
+                    _b.label = 11;
+                case 11: return [2 /*return*/];
             }
         });
     });

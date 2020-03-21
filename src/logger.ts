@@ -18,6 +18,7 @@ class Logger {
         term.write(this.caller + ": " + mess + "\n");
     }
     debug(mess:string) {
+        return;
         if (this.level == 'debug') {
             term.write("debug:" + this.caller + ": " + mess + "\n");
             //console.log("debug:" + this.caller + ": " + mess);

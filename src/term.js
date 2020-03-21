@@ -1,3 +1,5 @@
+"use strict";
+import axios from 'axios';
 import { mkLogger } from './logger.js';
 //import {mkRuntime, startRuntime} from './runtimeMonitored.js'
 
@@ -83,10 +85,28 @@ async function runTroupe(args) {
     top.main()
     */
 
-    let file = require('./programs/prog_42_commonjs.js');
+    /*
+    let response = await fetch("http://localhost:1234/programs/prog_42_commonjs.js");
+    
+
+    if (response.ok) { // if HTTP-status is 200-299
+        // get the response body (the method explained below)
+        console.log(response);
+        window.rr = response;
+        console.log( await response.text())
+        let file = response.body;
+        console.log(file);
+    } else {
+        alert("HTTP-Error: " + response.status);
+    }
+    */
+
+    //let runningFile = "prog_42_commonjs.js";
+    //let file = require('./programs/' + runningFile);
+    let file = require('./programs/fib.js')
     let top = new file(runt.mkRuntime());
     runt.startRuntime(top);
-
+    
 
     /*
     // importing the compiled program file
@@ -146,6 +166,30 @@ async function handleCommand(line_str) {
             break;
         case "p2p":
             await p2pTest();
+            break;
+        case "compile":
+            const runt = require('./runtimeMonitored.js');
+            let rt = {};
+            rt.rt_uuid = 2;
+            rt.linkLibs = (a, b, c) => { return a; };
+            rt.ret = (a) => { term.write("\n" + a); };
+            rt.mkValPos = (a, b) => { return a; };
+
+            console.log("calling server");
+            let txt = await axios.get('http://localhost:3000/compile');
+            console.log("received from server");
+            let module = {};
+            let Top = new Function('"use strict";return (' + txt.data + ')');
+            //let Top = txt.data;
+            console.log(Top);
+            console.log("running rt")
+            let pp = new Top(rt);
+            console.log(pp);
+            let rt = await runt.mkRuntime();
+            let top = new Top(rt);
+            console.log(top);
+            await runt.startRuntime(top);
+
             break;
         default:
             term.write("Do not recognise command '" + command + "'. Type 'help' to see options\n");

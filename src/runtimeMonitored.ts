@@ -123,6 +123,9 @@ let rt_whereis;
 let rt_exit;
 let __unit;
 
+// My Features
+let rt_localStorage;
+
 
 let raiseCurrentThreadPC;
 let raiseCurrentThreadPCToBlockingLev;
@@ -946,6 +949,10 @@ function initRuntime() {
   // is it always taken a LVal as input?
   rt_ret = (arg) => __sched.returnInThread(arg);
 
+  rt_localStorage = mkBase((env, arg) => {
+    log('localStorage');
+    rt_ret(__unit);
+  }, "localStorage");
 
 }
 

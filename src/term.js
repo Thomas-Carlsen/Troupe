@@ -177,14 +177,27 @@ async function handleCommand(line_str) {
             rt.ret = (a) => { term.write("\n" + a); };
             rt.mkValPos = (a, b) => { return a; };
 
-            console.log("calling server");
-            let compiledFile = await axios.get('http://localhost:3000/compile');
-            console.log("received from server");
-            
-            let Top = Function("rt", "let Top = " + compiledFile.data + "; return new Top(rt);");
-            console.log(Top)
-            let top = Top(rt);
-            console.log(top);
+            //console.log("calling server");
+            try {
+                let compiledFile = await axios.get('http://localhost:3000/compile');
+                console.log("received from server");
+                //console.log(compiledFile);
+
+                let Top = Function("rt", "let Top = " + compiledFile.data + "; return new Top(rt);");
+                // console.log(Top)
+                // let top = Top(rt);
+                // console.log(top);
+                let top = Top(runt.mkRuntime());
+                console.log(top);
+                await runt.startRuntime(top);
+
+
+            } catch(e) {
+                //console.log("Trouble with receving a compiled file from the server");
+                console.log(e.response.data);
+                //console.log(e);
+            }
+            //console.log("Compiled session over");
 
             /*
             let Top = Function("rt", compiledFile.data);

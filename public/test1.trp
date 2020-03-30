@@ -1,1 +1,1 @@
-localStorage()
+localStorageWrite("raok", 2);

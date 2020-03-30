@@ -157,7 +157,9 @@ var rt_whereis;
 var rt_exit;
 var __unit;
 // My Features
-var rt_localStorage;
+var rt_localStorageWrite;
+var rt_localStorageRead;
+var rt_localStorageDelete;
 var raiseCurrentThreadPC;
 var raiseCurrentThreadPCToBlockingLev;
 var raiseCurrentBlockingThreadLev;
@@ -370,6 +372,7 @@ function rt_sendMessageNochecks(lRecipientPid, message, ret) {
         sendMessageToRemote(recipientPid, message);
     }
 }
+//////// INIT ////////
 function initRuntime() {
     var _this = this;
     debug("Initializing");
@@ -807,10 +810,32 @@ function initRuntime() {
     }, "whereis");
     // is it always taken a LVal as input?
     rt_ret = function (arg) { return __sched.returnInThread(arg); };
-    rt_localStorage = mkBase(function (env, arg) {
-        log('localStorage');
+    rt_localStorageWrite = mkBase(function (env, arg) {
+        //console.log("Writing", arg.val[0].val, "to localstorage");
+        assertIsNTuple(arg, 2);
+        assertIsString(arg.val[0]);
+        assertIsString(arg.val[1]); // read only returns strings, so it is best to also write them
+        // Should also make a check of the second argument
+        localStorage.setItem(arg.val[0].val, arg.val[1].stringRep());
+        //log('localStorage');
         rt_ret(__unit);
-    }, "localStorage");
+    }, "localStorageWrite");
+    rt_localStorageRead = mkBase(function (env, arg) {
+        //console.log("Reading", arg.val, "in localStorage");
+        assertIsString(arg);
+        var data = localStorage.getItem(arg.val);
+        var dataSplit = data.split("@");
+        var val = rtObj.mkValPos(dataSplit[0].replace('"', ''), '');
+        var lev = dataSplit[1].split("%")[0].replace('{', '').replace('}', '');
+        var label = rtObj.mkLabel(lev);
+        rt_ret(rtObj.raisedTo(val, label));
+    }, "rt_localStorageRead");
+    rt_localStorageDelete = mkBase(function (env, arg) {
+        //console.log("Deleting", arg.val, "in localStorage");
+        assertIsString(arg);
+        localStorage.removeItem(arg.val);
+        rt_ret(__unit);
+    }, "rt_localStorageDelete");
 }
 initRuntime();
 function okToDeclassify(levFrom, levTo, auth) {
@@ -1227,6 +1252,9 @@ function RuntimeObject() {
     this.register = rt_register;
     this.whereis = rt_whereis;
     this.exit = rt_exit;
+    this.localStorageWrite = rt_localStorageWrite;
+    this.localStorageRead = rt_localStorageRead;
+    this.localStorageDelete = rt_localStorageDelete;
     this.debugpc = mkBase(function (env, arg) {
         //    assertIsString(arg);
         rt_debug("");

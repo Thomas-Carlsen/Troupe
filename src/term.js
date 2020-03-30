@@ -103,7 +103,9 @@ async function runTroupe(args) {
 
     //let runningFile = "prog_42_commonjs.js";
     //let file = require('./programs/' + runningFile);
-    let file = require('./programs/fib.js')
+    
+    //let file = require('./programs/fib.js');
+    let file = require('./programs/out/out.js');
     let top = new file(runt.mkRuntime());
     runt.startRuntime(top);
     
@@ -176,19 +178,33 @@ async function handleCommand(line_str) {
             rt.mkValPos = (a, b) => { return a; };
 
             console.log("calling server");
-            let txt = await axios.get('http://localhost:3000/compile');
+            let compiledFile = await axios.get('http://localhost:3000/compile');
             console.log("received from server");
-            let module = {};
-            let Top = new Function('"use strict";return (' + txt.data + ')');
+            
+            let Top = Function("rt", "let Top = " + compiledFile.data + "; return new Top(rt);");
+            console.log(Top)
+            let top = Top(rt);
+            console.log(top);
+
+            /*
+            let Top = Function("rt", compiledFile.data);
+            console.log(Top);
+            let top = new Top(rt);
+            console.log(top);
+            
+
+            let Top = Function("rt", compiledFile.data);
             //let Top = txt.data;
             console.log(Top);
             console.log("running rt")
-            let pp = new Top(rt);
-            console.log(pp);
+            let p = new Top(rt);
+            console.log(p);
+
             let rt = await runt.mkRuntime();
             let top = new Top(rt);
             console.log(top);
             await runt.startRuntime(top);
+            */
 
             break;
         default:

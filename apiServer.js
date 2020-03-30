@@ -17,12 +17,19 @@ app.get('/serialize', (req, res) => {
     res.send(compiler);
 });
 
+function readWriteSync(file) {
+    var data = fs.readFileSync(file, 'utf-8');
+    var dataFixed = data.replace("module.exports = Top ", "");
+    fs.writeFileSync(file, dataFixed, 'utf-8');
+    console.log('readFileSync complete');
+}
+
 app.get('/compile', (req, res) => {
     
-    //let p = spawn(process.env.TROUPE + '/bin/troupec', ['./webTestFiles/test1.trp']);
-    //let file = fs.readFileSync('./out/out.js');
     
-    //res.sendFile(__dirname + '/out/out.js');
+    let p = spawn(process.env.TROUPE + '/bin/troupec', ['./webTestFiles/test1.trp']);
+    readWriteSync('./out/out.js');
+    res.sendFile(__dirname + '/out/out.js');
 });
 
 

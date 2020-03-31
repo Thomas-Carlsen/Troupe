@@ -1,0 +1,9 @@
+let 
+    val secret = 1 raisedTo {sec}
+    val temp = 0
+    val public = 1
+
+    val temp = if secret then 1 else temp
+    val public = if temp = 0 then 0 else public
+in public
+end

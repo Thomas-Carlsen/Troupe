@@ -1,8 +1,0 @@
-let 
-    val secret = 1 raised {sec}
-    val temp = 0
-    val public = 1 raised {pub}
-in 
-    if secret then temp = 1 ;
-    if temp then public = 0
-end

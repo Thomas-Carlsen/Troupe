@@ -971,7 +971,8 @@ function initRuntime() {
     assertIsString(arg);
     let data = localStorage.getItem(arg.val);
     let dataSplit = data.split("@");
-    let val = rtObj.mkValPos(dataSplit[0].replace('"',''),'');
+    let fixedStrVal = dataSplit[0].replace(/"/g, '');
+    let val = rtObj.mkValPos(fixedStrVal,'');
     let lev = dataSplit[1].split("%")[0].replace('{','').replace('}','');
     let label = rtObj.mkLabel(lev);
     rt_ret(rtObj.raisedTo(val, label));
@@ -1424,24 +1425,6 @@ function RuntimeObject() {
   this.levels = levels
   this.persist = persist
   this.mkLabel = rt_mkLabel
-  this.raisedTo = function (x, y) {
-    return new LVal(x.val, lub(lub(x.lev, y.val), y.lev), lubs([x.tlev, y.tlev, __sched.pc]))
-  }
-
-  // this.flowsTo = function (x, y) {
-  //   return new LVal(flowsTo(x.val, y.val), lub(x.lev, y.lev), lub(x.tlev, y.tlev))
-  // }
-  /*
-  this.levelOf = function (x) {
-    return new LVal(x.lev, lub (pc, x.lev)); // 2018-10-15: AA; implementing a sticky level
-  }
-  */
-
-  this.unaryMinus = function (x) {
-    assertIsNumber(x);
-    return new LVal(-x.val, x.lev, x.tlev)
-  }
-
   this.node = rt_nodeFromProcess;
   this.raiseTrust = rt_raiseTrust;
   this.attenuate = rt_attenuate;
@@ -1473,6 +1456,23 @@ function RuntimeObject() {
   this.localStorageWrite = rt_localStorageWrite;
   this.localStorageRead = rt_localStorageRead;
   this.localStorageDelete = rt_localStorageDelete;
+  this.raisedTo = function (x, y) {
+    return new LVal(x.val, lub(lub(x.lev, y.val), y.lev), lubs([x.tlev, y.tlev, __sched.pc]))
+  }
+
+  // this.flowsTo = function (x, y) {
+  //   return new LVal(flowsTo(x.val, y.val), lub(x.lev, y.lev), lub(x.tlev, y.tlev))
+  // }
+  /*
+  this.levelOf = function (x) {
+    return new LVal(x.lev, lub (pc, x.lev)); // 2018-10-15: AA; implementing a sticky level
+  }
+  */
+
+  this.unaryMinus = function (x) {
+    assertIsNumber(x);
+    return new LVal(-x.val, x.lev, x.tlev)
+  }
 
 
 

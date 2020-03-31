@@ -27,6 +27,7 @@ let term_prompt = "troupe-webcli> ";
 let line_buffer = [];
 let cursor_pos = 0;
 let eol = 0;
+
 let cmd_hist = [];
 
 
@@ -41,7 +42,7 @@ function handlePrintable(c) {
     // Delete right
     term.write('\x1b[K');
     // Fill right
-    for (var i = cursor_pos; i < line_buffer.length; i++)
+    for (let i = cursor_pos; i < line_buffer.length; i++)
         term.write(line_buffer[i]);
     // Restore cursor pos
     term.write('\x1b[u');
@@ -54,7 +55,7 @@ function deleteAtCursor() {
     // Delete right
     term.write('\x1b[K');
     // Fill right
-    for (var i = cursor_pos; i < line_buffer.length; i++)
+    for (let i = cursor_pos; i < line_buffer.length; i++)
         term.write(line_buffer[i]);
     // Restore cursor pos
     term.write('\x1b[u');
@@ -145,7 +146,6 @@ async function p2pTest() {
 
 }
 
-// why is this not just a string?
 function helpOptions() {
     let out = `Run one of the following commands:
         troupe <program>
@@ -154,6 +154,15 @@ function helpOptions() {
         help\n`;
     return out;
 }
+
+function showHist() {
+    let str = "";
+    for (let word of cmd_hist ) {
+        str += word + "\n";
+    } 
+    term.write(str);
+}
+
 
 async function handleCommand(line_str) {
     if (line_str.trim() == "") return;
@@ -168,6 +177,9 @@ async function handleCommand(line_str) {
             break;
         case "p2p":
             await p2pTest();
+            break;
+        case "hist":
+            showHist();
             break;
         case "compile":
             const runt = require('./runtimeMonitored.js');
@@ -188,7 +200,7 @@ async function handleCommand(line_str) {
                 // let top = Top(rt);
                 // console.log(top);
                 let top = Top(runt.mkRuntime());
-                console.log(top);
+                //console.log(top);
                 await runt.startRuntime(top);
 
 
@@ -233,7 +245,16 @@ async function handleNonprintable(code, key) {
         case 13:
             term.write('\n');
             let line_str = line_buffer.join('');
-            cmd_hist.push(line_str);
+
+            // add cmd to cmd_hist
+            if (cmd_hist[cmd_hist.length-1] != line_str && line_str != "") {
+                if (cmd_hist.includes(line_str)){
+                    let idx = cmd_hist.indexOf(line_str);
+                    cmd_hist.splice(idx, 1);
+                }
+                cmd_hist.push(line_str)
+            }
+            
             await handleCommand(line_str);
             term.write(term_prompt);
             cursor_pos = 0;
@@ -289,32 +310,71 @@ async function handleNonprintable(code, key) {
             if (cursor_pos < eol) {
                 eol--;
                 line_buffer.splice(cursor_pos, 1);
-
                 deleteAtCursor();
             }
             break;
 
         // Up arrow
         case 38:
+            let n = cmd_hist.length;
+            if (n != 0) {
+                let line_str = line_buffer.join('');
+                if (line_str == "" || !cmd_hist.includes(line_str)) {
+                    let last_cmd = cmd_hist[n-1];
+                    writeStr(last_cmd);
+                } else if (cmd_hist.indexOf(line_str) != 0) {
+                    let idx = cmd_hist.indexOf(line_str);
+                    let next_cmd = cmd_hist[idx-1];
+                    
+                    //clear line
+                    for (let _ in line_str) term.write('\b \b'); // backspace 
+                    line_buffer = [];
+                    eol, cursor_pos = 0;
+
+                    writeStr(next_cmd);
+                }   
+            }            
             break;
 
         // Down arrow
         case 40:
+            let n = cmd_hist.length;
+            if (n != 0) {
+                let line_str = line_buffer.join('');
+                if (line_str == "" || !cmd_hist.includes(line_str)) {
+                    let last_cmd = cmd_hist[0];
+                    writeStr(last_cmd);
+                } else if (cmd_hist.indexOf(line_str) != n-1) {
+                    let idx = cmd_hist.indexOf(line_str);
+                    let next_cmd = cmd_hist[idx+1];
+                    
+                    //clear line
+                    for (let _ in line_str) term.write('\b \b'); // backspace 
+                    line_buffer = [];
+                    eol, cursor_pos = 0;
+
+                    writeStr(next_cmd);
+                }   
+            }            
             break;
 
 
         // Tab
         case 9:
             //let auto_cor_str = "troupe ./programs/prog_42_es6.js";
-            let auto_cor_str = "troupe ./programs/prog_42_commonjs.js";
-            term.write(auto_cor_str);
-            line_buffer = line_buffer.concat(auto_cor_str.split(""));
-            cursor_pos += auto_cor_str.length;
-            eol += auto_cor_str.length;
+            writeStr("troupe ./programs/prog_42_commonjs.js");
             break;
 
         default:
     }
+}
+
+
+function writeStr(str) {
+    term.write(str);
+    line_buffer = line_buffer.concat(str.split(""));
+    cursor_pos += str.length;
+    eol += str.length;
 }
 
 async function handleInput(key, e) {

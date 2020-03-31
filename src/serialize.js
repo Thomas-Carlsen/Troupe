@@ -37,7 +37,7 @@ function isClosure(x) {
     return  (typeof x.env != "undefined"
           && typeof x.fun != "undefined"
           && typeof x.namespace != "undefined"
-        )
+        );
 }
 
 function isProcessId (x) {
@@ -55,16 +55,16 @@ function isList(x) {
   return (typeof x.isList != "undefined")
 }
 
-function isLevel (x) {
+function isLevel(x) {
   return (typeof x.isLevel != "undefined")
 }
 
-function isAuthority (x) {
+function isAuthority(x) {
   return (typeof x.authorityLevel != "undefined");
 }
 
 
-function isAtom (x) {
+function isAtom(x) {
   return (typeof x.atom != "undefined");
 }
 
@@ -130,13 +130,13 @@ function compilerOutputReady(data) {
       if (j > 0) {
         nsFun += "\n\n" // looks neater this way
       }
-      let snippetJson = JSON.parse (snippets[k++]);
+      let snippetJson = JSON.parse(snippets[k++]);
       // console.log (snippetJson.libs);
       // console.log (snippetJson.fname);
       nsFun += snippetJson.code; 
     }
 
-    let NS = new Function ('rt',nsFun)
+    let NS = new Function('rt', nsFun);
     // console.log (NS.toString());
     ns.fun = new NS(rtObj)
   }
@@ -376,7 +376,7 @@ function stopCompiler() {
 */
 
 
-function serialize(x, pclev) {
+function serialize(lval, pclev) {
   let seenNamespaces = new Map();
   let seenClosures   = new Map();
   let seenEnvs       = new Map();
@@ -385,14 +385,13 @@ function serialize(x, pclev) {
   let closures   = [];
   let envs       = [];
 
-
   let level = pclev;
 
-  function walk (lval)  {
+  function walk(lval)  {
     // console.log("** walk", lval);
     //assert(isLVal(lval));
 
-    level =  rtObj.lub (level, lval.lev); // 2018-09-24: AA: is this the only place 
+    level = rtObj.lub(level, lval.lev); // 2018-09-24: AA: is this the only place 
                                        // where we need to check the level of the message?
 
     let jsonObj;
@@ -402,12 +401,12 @@ function serialize(x, pclev) {
 
     if ( isList(x) || isTuple(x)) {
       jsonObj = [];
-      var i;
-      for (i = 0; i < x.length; i ++) {
-        jsonObj.push (walk (x[i]));
+      
+      for (let i = 0; i < x.length; i ++) {
+        jsonObj.push(walk(x[i]));
       } 
       
-      if (isTuple (x)) {
+      if (isTuple(x)) {
         tupleKind = true;
         // console.log ("ISTUPLE")
       } else {
@@ -418,26 +417,26 @@ function serialize(x, pclev) {
 
     } else if ( isClosure(x) ) {
       if (seenClosures.has(x)) { // debuglog ("pointer to [existing] heap object", seen.get(x))
-        jsonObj = { ClosureID : seenClosures.get(x)};
+        jsonObj = { ClosureID: seenClosures.get(x)};
       } else {
-        jsonObj  = { ClosureID : closures.length  }
+        jsonObj = { ClosureID: closures.length  }
         seenClosures.set(x, closures.length  );
         let jsonClosure = {};
-        closures.push (jsonClosure);
+        closures.push(jsonClosure);
 
         let jsonEnvPtr;
-        if (seenEnvs.has (x.env)) {
+        if (seenEnvs.has(x.env)) {
           jsonEnvPtr = { EnvID: seenEnvs.get(x.env)}
         } else {
           jsonEnvPtr = { EnvID: envs.length };
-          seenEnvs.set (x.eqnv, envs.length)
+          seenEnvs.set(x.eqnv, envs.length)
           let jsonEnv = {};
-          envs.push (jsonEnv);
+          envs.push(jsonEnv);
 
           for (let field in x.env) {
             if (field != "ret") {
               let y = x.env[field];
-              jsonEnv[field] = walk (y);
+              jsonEnv[field] = walk(y);
             }
           }
         }
@@ -446,30 +445,30 @@ function serialize(x, pclev) {
         for ( let ff in x.namespace ) {
           if (x.namespace[ff] == x.fun) {
             let jsonNamespacePtr;
-            let namespace ;
+            let namespace;
             if (seenNamespaces.has(x.namespace)) {
-              let n_id = seenNamespaces.get (x.namespace);
+              let n_id = seenNamespaces.get(x.namespace);
               jsonNamespacePtr = { NamespaceID: n_id };
               namespace = namespaces[n_id];
             } else {
-              jsonNamespacePtr = { NamespaceID : namespaces.length };
-              seenNamespaces.set ( x.namespace, namespaces.length );
-              namespace = new Map ();
-              namespaces.push (namespace);              
+              jsonNamespacePtr = { NamespaceID: namespaces.length };
+              seenNamespaces.set( x.namespace, namespaces.length );
+              namespace = new Map();
+              namespaces.push(namespace);              
             }
 
-            namespace.set (ff, x.fun.serialized)
+            namespace.set(ff, x.fun.serialized)
 
-            function dfs (deps) {
+            function dfs(deps) {
               for (let depName of deps) {
-                if (!namespace.has (depName) )  {
+                if (!namespace.has(depName) )  {
                   namespace.set(depName, x.namespace[depName].serialized);
-                  dfs (x.namespace[depName].deps);
+                  dfs(x.namespace[depName].deps);
                 }
               }
             }
 
-            dfs (x.fun.deps);
+            dfs(x.fun.deps);
 
             jsonClosure.namespacePtr = jsonNamespacePtr;
             jsonClosure.fun = ff;
@@ -481,13 +480,13 @@ function serialize(x, pclev) {
     //     jsonObj = new rtObj.ProcessID ( x.uuid, x.pid, x.node )
     //     // Object.setPrototypeOf(jsonObj, rtObj.ProcesSID);
 
-    } else if (isLevel (x) ) {     
-      jsonObj = { lev : x.stringRep(), isLevel : true }     
-    } else if ( isLVal (x)) {
-        jsonObj = walk (x)
-    } else if ( isAuthority (x) ) {
+    } else if ( isLevel(x) ) {  
+      jsonObj = { lev: x.stringRep(), isLevel: true }     
+    } else if ( isLVal(x) ) {
+        jsonObj = walk(x)
+    } else if ( isAuthority(x) ) {
         jsonObj = { authorityLevel: x.authorityLevel.stringRep() } 
-    } else if ( isAtom (x)) {
+    } else if ( isAtom(x) ) {
         jsonObj = { atom: x.atom, creation_uuid: x.creation_uuid }
     } else {
         jsonObj = x;
@@ -499,17 +498,17 @@ function serialize(x, pclev) {
     // that in a different class with a name that reflects that 
     // this is a transport-level representation. 
 
-    return { val: jsonObj, lev : lval.lev.stringRep(), tlev: lval.tlev.stringRep(), tupleKind : tupleKind  };
+    return { val: jsonObj, lev: lval.lev.stringRep(), tlev: lval.tlev.stringRep(), tupleKind: tupleKind  };
     // return new rtObj.LVal(jsonObj, lval.lev.stringRep());
   }
 
-  let value = walk (x);
-  value.lev = rtObj.lub (x.lev, pclev).stringRep () ;
+  let value = walk(lval);
+  value.lev = rtObj.lub(x.lev, pclev).stringRep();
 
 
   let nsp = [];
   for (let j = 0; j < namespaces.length; j ++) {
-    nsp.push (Array.from(namespaces[j]));
+    nsp.push(Array.from(namespaces[j]));
   }
 
   let serializeObj = { libdeps: []
@@ -520,7 +519,7 @@ function serialize(x, pclev) {
 
   
   // TODO: propagate the level; 
-  return { data: serializeObj, level : level } 
+  return { data: serializeObj, level: level } 
 }
 
 

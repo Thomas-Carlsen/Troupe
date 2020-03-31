@@ -26,10 +26,7 @@ function readWriteSync(file) {
 
 app.get('/compile', (req, res) => {
     try {
-        execSync(process.env.TROUPE + '/bin/troupec ./programs/FlowSensitiveAttack.trp')
-        .stdout.on('data', () => console.log("git it out"))
-        .stderr.on('data', () => console.log("git it"));
-
+        execSync(process.env.TROUPE + '/bin/troupec ./programs/FlowSensitivityAttackLocalStorage.trp');
         readWriteSync('./out/out.js');
         res.sendFile(__dirname + '/out/out.js');
     } catch(error) {

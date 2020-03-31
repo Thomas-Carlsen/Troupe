@@ -116,10 +116,17 @@ function p2pTest() {
         });
     });
 }
-// why is this not just a string?
 function helpOptions() {
     var out = "Run one of the following commands:\n        troupe <program>\n        p2p\n        ls\n        help\n";
     return out;
+}
+function showHist() {
+    var str = "";
+    for (var _i = 0, cmd_hist_1 = cmd_hist; _i < cmd_hist_1.length; _i++) {
+        var word = cmd_hist_1[_i];
+        str += word + "\n";
+    }
+    term.write(str);
 }
 function handleCommand(line_str) {
     return __awaiter(this, void 0, void 0, function () {
@@ -136,47 +143,52 @@ function handleCommand(line_str) {
                         case "help": return [3 /*break*/, 1];
                         case "troupe": return [3 /*break*/, 2];
                         case "p2p": return [3 /*break*/, 4];
-                        case "compile": return [3 /*break*/, 6];
+                        case "hist": return [3 /*break*/, 6];
+                        case "compile": return [3 /*break*/, 7];
                     }
-                    return [3 /*break*/, 12];
+                    return [3 /*break*/, 13];
                 case 1:
                     term.write(helpOptions());
-                    return [3 /*break*/, 13];
+                    return [3 /*break*/, 14];
                 case 2: return [4 /*yield*/, runTroupe(line.splice(1))];
                 case 3:
                     _b.sent();
-                    return [3 /*break*/, 13];
+                    return [3 /*break*/, 14];
                 case 4: return [4 /*yield*/, p2pTest()];
                 case 5:
                     _b.sent();
-                    return [3 /*break*/, 13];
+                    return [3 /*break*/, 14];
                 case 6:
+                    showHist();
+                    return [3 /*break*/, 14];
+                case 7:
                     runt = require('./runtimeMonitored.js');
                     rt = {};
                     rt.rt_uuid = 2;
                     rt.linkLibs = function (a, b, c) { return a; };
                     rt.ret = function (a) { term.write("\n" + a); };
                     rt.mkValPos = function (a, b) { return a; };
-                    _b.label = 7;
-                case 7:
-                    _b.trys.push([7, 10, , 11]);
-                    return [4 /*yield*/, axios_1.default.get('http://localhost:3000/compile')];
+                    _b.label = 8;
                 case 8:
+                    _b.trys.push([8, 11, , 12]);
+                    return [4 /*yield*/, axios_1.default.get('http://localhost:3000/compile')];
+                case 9:
                     compiledFile = _b.sent();
                     console.log("received from server");
                     Top = Function("rt", "let Top = " + compiledFile.data + "; return new Top(rt);");
                     top_1 = Top(runt.mkRuntime());
-                    console.log(top_1);
+                    //console.log(top);
                     return [4 /*yield*/, runt.startRuntime(top_1)];
-                case 9:
-                    _b.sent();
-                    return [3 /*break*/, 11];
                 case 10:
+                    //console.log(top);
+                    _b.sent();
+                    return [3 /*break*/, 12];
+                case 11:
                     e_1 = _b.sent();
                     //console.log("Trouble with receving a compiled file from the server");
                     console.log(e_1.response.data);
-                    return [3 /*break*/, 11];
-                case 11: 
+                    return [3 /*break*/, 12];
+                case 12: 
                 //console.log("Compiled session over");
                 /*
                 let Top = Function("rt", compiledFile.data);
@@ -197,18 +209,18 @@ function handleCommand(line_str) {
                 console.log(top);
                 await runt.startRuntime(top);
                 */
-                return [3 /*break*/, 13];
-                case 12:
+                return [3 /*break*/, 14];
+                case 13:
                     term.write("Do not recognise command '" + command + "'. Type 'help' to see options\n");
-                    _b.label = 13;
-                case 13: return [2 /*return*/];
+                    _b.label = 14;
+                case 14: return [2 /*return*/];
             }
         });
     });
 }
 function handleNonprintable(code, key) {
     return __awaiter(this, void 0, void 0, function () {
-        var _a, line_str, auto_cor_str;
+        var _a, line_str, idx, n, line_str_1, last_cmd, idx, next_cmd, _, n, line_str_2, last_cmd, idx, next_cmd, _;
         return __generator(this, function (_b) {
             switch (_b.label) {
                 case 0:
@@ -229,7 +241,14 @@ function handleNonprintable(code, key) {
                 case 1:
                     term.write('\n');
                     line_str = line_buffer.join('');
-                    cmd_hist.push(line_str);
+                    // add cmd to cmd_hist
+                    if (cmd_hist[cmd_hist.length - 1] != line_str && line_str != "") {
+                        if (cmd_hist.includes(line_str)) {
+                            idx = cmd_hist.indexOf(line_str);
+                            cmd_hist.splice(idx, 1);
+                        }
+                        cmd_hist.push(line_str);
+                    }
                     return [4 /*yield*/, handleCommand(line_str)];
                 case 2:
                     _b.sent();
@@ -275,19 +294,60 @@ function handleNonprintable(code, key) {
                         deleteAtCursor();
                     }
                     return [3 /*break*/, 12];
-                case 9: return [3 /*break*/, 12];
-                case 10: return [3 /*break*/, 12];
+                case 9:
+                    n = cmd_hist.length;
+                    if (n != 0) {
+                        line_str_1 = line_buffer.join('');
+                        if (line_str_1 == "" || !cmd_hist.includes(line_str_1)) {
+                            last_cmd = cmd_hist[n - 1];
+                            writeStr(last_cmd);
+                        }
+                        else if (cmd_hist.indexOf(line_str_1) != 0) {
+                            idx = cmd_hist.indexOf(line_str_1);
+                            next_cmd = cmd_hist[idx - 1];
+                            //clear line
+                            for (_ in line_str_1)
+                                term.write('\b \b'); // backspace 
+                            line_buffer = [];
+                            eol, cursor_pos = 0;
+                            writeStr(next_cmd);
+                        }
+                    }
+                    return [3 /*break*/, 12];
+                case 10:
+                    n = cmd_hist.length;
+                    if (n != 0) {
+                        line_str_2 = line_buffer.join('');
+                        if (line_str_2 == "" || !cmd_hist.includes(line_str_2)) {
+                            last_cmd = cmd_hist[0];
+                            writeStr(last_cmd);
+                        }
+                        else if (cmd_hist.indexOf(line_str_2) != n - 1) {
+                            idx = cmd_hist.indexOf(line_str_2);
+                            next_cmd = cmd_hist[idx + 1];
+                            //clear line
+                            for (_ in line_str_2)
+                                term.write('\b \b'); // backspace 
+                            line_buffer = [];
+                            eol, cursor_pos = 0;
+                            writeStr(next_cmd);
+                        }
+                    }
+                    return [3 /*break*/, 12];
                 case 11:
-                    auto_cor_str = "troupe ./programs/prog_42_commonjs.js";
-                    term.write(auto_cor_str);
-                    line_buffer = line_buffer.concat(auto_cor_str.split(""));
-                    cursor_pos += auto_cor_str.length;
-                    eol += auto_cor_str.length;
+                    //let auto_cor_str = "troupe ./programs/prog_42_es6.js";
+                    writeStr("troupe ./programs/prog_42_commonjs.js");
                     return [3 /*break*/, 12];
                 case 12: return [2 /*return*/];
             }
         });
     });
+}
+function writeStr(str) {
+    term.write(str);
+    line_buffer = line_buffer.concat(str.split(""));
+    cursor_pos += str.length;
+    eol += str.length;
 }
 function handleInput(key, e) {
     return __awaiter(this, void 0, void 0, function () {

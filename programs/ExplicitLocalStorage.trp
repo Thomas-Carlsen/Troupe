@@ -1,7 +1,7 @@
 let 
     val secVar = "1" raisedTo {sec}
     val _ = localStorageWrite("secVar", secVar)
-    val _ = localStorageWrite("secVar", "1")
+    val _ = localStorageWrite("secVar", "1") (* this should not be allowed - only write to the allowed level - segragate storage areas by level*)
     val s = localStorageRead("secVar")
     val p = "0" raisedTo {pub}
 in s = p 

@@ -1,0 +1,11 @@
+let 
+    val secVar = "1" raisedTo {sec}
+    val _ = localStorageWrite("secVar", secVar)
+    val secret = localStorageRead("secVar")
+    val temp = "0"
+    val public = "1"
+
+    val temp = if secret = "1" then 1 else temp
+    val public = if temp = "0" then "0" else public
+in temp
+end

@@ -825,7 +825,8 @@ function initRuntime() {
         assertIsString(arg);
         var data = localStorage.getItem(arg.val);
         var dataSplit = data.split("@");
-        var val = rtObj.mkValPos(dataSplit[0].replace('"', ''), '');
+        var fixedStrVal = dataSplit[0].replace(/"/g, '');
+        var val = rtObj.mkValPos(fixedStrVal, '');
         var lev = dataSplit[1].split("%")[0].replace('{', '').replace('}', '');
         var label = rtObj.mkLabel(lev);
         rt_ret(rtObj.raisedTo(val, label));

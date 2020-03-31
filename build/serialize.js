@@ -325,7 +325,7 @@ function stopCompiler() {
 .##....##.##.......##....##...##..##.....##.##........##...##......##.....##....##.....##..##.....##.##...###
 ..######..########.##.....##.####.##.....##.########.####.########.##.....##....##....####..#######..##....##
 */
-function serialize(x, pclev) {
+function serialize(lval, pclev) {
     var seenNamespaces = new Map();
     var seenClosures = new Map();
     var seenEnvs = new Map();
@@ -343,8 +343,7 @@ function serialize(x, pclev) {
         var tupleKind = false;
         if (isList(x) || isTuple(x)) {
             jsonObj = [];
-            var i;
-            for (i = 0; i < x.length; i++) {
+            for (var i = 0; i < x.length; i++) {
                 jsonObj.push(walk(x[i]));
             }
             if (isTuple(x)) {
@@ -443,8 +442,8 @@ function serialize(x, pclev) {
         return { val: jsonObj, lev: lval.lev.stringRep(), tlev: lval.tlev.stringRep(), tupleKind: tupleKind };
         // return new rtObj.LVal(jsonObj, lval.lev.stringRep());
     }
-    var value = walk(x);
-    value.lev = rtObj.lub(x.lev, pclev).stringRep();
+    var value = walk(lval);
+    value.lev = rtObj.lub(lval.lev, pclev).stringRep();
     var nsp = [];
     for (var j = 0; j < namespaces.length; j++) {
         nsp.push(Array.from(namespaces[j]));

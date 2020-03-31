@@ -1,1 +1,5 @@
-localStorageWrite("vaba", 4)
+let 
+    val _ = localStorageWrite("vaba", 4)
+in 
+    localStorageRead("vaba")
+end

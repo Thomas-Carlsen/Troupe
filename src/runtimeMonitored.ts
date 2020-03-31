@@ -959,23 +959,38 @@ function initRuntime() {
     //console.log("Writing", arg.val[0].val, "to localstorage");
     assertIsNTuple(arg, 2);
     assertIsString(arg.val[0]);
-    assertIsString(arg.val[1]); // read only returns strings, so it is best to also write them
+    //assertIsString(arg.val[1]); // read only returns strings, so it is best to also write them
     // Should also make a check of the second argument
-    localStorage.setItem(arg.val[0].val, arg.val[1].stringRep());
+    let data = arg.val[1];
+    let serializeObj = SS.serialize(data, __sched.pc).data;
+    localStorage.setItem(arg.val[0].val, JSON.stringify(serializeObj));
     //log('localStorage');
     rt_ret(__unit);
   }, "localStorageWrite");
 
-  rt_localStorageRead = mkBase((env, arg) => {
+  rt_localStorageRead = mkBase( async (env, arg) => {
     //console.log("Reading", arg.val, "in localStorage");
     assertIsString(arg);
-    let data = localStorage.getItem(arg.val);
+    let theThread = __sched.__currentThread;
+    let key = arg.val;
+    let data = localStorage.getItem(key);
+    let lval = await SS.deserializeAsync(levels.TOP, JSON.parse(data));
+    /*
+    theThread.returnInThread(dataJson);
+      __sched.scheduleThreadT(theThread);
+      __sched.resumeLoopAsync();
+    */
+
+    /*
+    //let data = localStorage.getItem(arg.val);
     let dataSplit = data.split("@");
     let fixedStrVal = dataSplit[0].replace(/"/g, '');
     let val = rtObj.mkValPos(fixedStrVal,'');
     let lev = dataSplit[1].split("%")[0].replace('{','').replace('}','');
-    let label = rtObj.mkLabel(lev);
-    rt_ret(rtObj.raisedTo(val, label));
+    */
+    //let label = rtObj.mkLabel(dataJson.lev.replace('{','').replace('}',''));
+    //rt_ret(rtObj.raisedTo(lval.val, lval.lev.lev)); 
+    rt_ret(lval); //should use pc level with lub
   }, "rt_localStorageRead");
 
   rt_localStorageDelete = mkBase((env, arg) => {

@@ -503,7 +503,7 @@ function serialize(lval, pclev) {
   }
 
   let value = walk(lval);
-  value.lev = rtObj.lub(x.lev, pclev).stringRep();
+  value.lev = rtObj.lub(lval.lev, pclev).stringRep();
 
 
   let nsp = [];

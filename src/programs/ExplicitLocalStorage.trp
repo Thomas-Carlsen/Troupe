@@ -1,7 +1,6 @@
 let 
     val secVar = "1" raisedTo {sec}
     val _ = localStorageWrite("secVar", secVar)
-    val _ = localStorageWrite("secVar", "1")
     val s = localStorageRead("secVar")
     val p = "0" raisedTo {pub}
 in s = p 

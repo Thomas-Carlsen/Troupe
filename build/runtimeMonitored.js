@@ -814,23 +814,47 @@ function initRuntime() {
         //console.log("Writing", arg.val[0].val, "to localstorage");
         assertIsNTuple(arg, 2);
         assertIsString(arg.val[0]);
-        assertIsString(arg.val[1]); // read only returns strings, so it is best to also write them
+        //assertIsString(arg.val[1]); // read only returns strings, so it is best to also write them
         // Should also make a check of the second argument
-        localStorage.setItem(arg.val[0].val, arg.val[1].stringRep());
+        var data = arg.val[1];
+        var serializeObj = serialize_js_1.default.serialize(data, __sched.pc).data;
+        localStorage.setItem(arg.val[0].val, JSON.stringify(serializeObj));
         //log('localStorage');
         rt_ret(__unit);
     }, "localStorageWrite");
-    rt_localStorageRead = mkBase(function (env, arg) {
-        //console.log("Reading", arg.val, "in localStorage");
-        assertIsString(arg);
-        var data = localStorage.getItem(arg.val);
-        var dataSplit = data.split("@");
-        var fixedStrVal = dataSplit[0].replace(/"/g, '');
-        var val = rtObj.mkValPos(fixedStrVal, '');
-        var lev = dataSplit[1].split("%")[0].replace('{', '').replace('}', '');
-        var label = rtObj.mkLabel(lev);
-        rt_ret(rtObj.raisedTo(val, label));
-    }, "rt_localStorageRead");
+    rt_localStorageRead = mkBase(function (env, arg) { return __awaiter(_this, void 0, void 0, function () {
+        var theThread, key, data, lval;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0:
+                    //console.log("Reading", arg.val, "in localStorage");
+                    assertIsString(arg);
+                    theThread = __sched.__currentThread;
+                    key = arg.val;
+                    data = localStorage.getItem(key);
+                    return [4 /*yield*/, serialize_js_1.default.deserializeAsync(levels.TOP, JSON.parse(data))];
+                case 1:
+                    lval = _a.sent();
+                    console.log(lval);
+                    /*
+                    theThread.returnInThread(dataJson);
+                      __sched.scheduleThreadT(theThread);
+                      __sched.resumeLoopAsync();
+                    */
+                    /*
+                    //let data = localStorage.getItem(arg.val);
+                    let dataSplit = data.split("@");
+                    let fixedStrVal = dataSplit[0].replace(/"/g, '');
+                    let val = rtObj.mkValPos(fixedStrVal,'');
+                    let lev = dataSplit[1].split("%")[0].replace('{','').replace('}','');
+                    */
+                    //let label = rtObj.mkLabel(dataJson.lev.replace('{','').replace('}',''));
+                    //rt_ret(rtObj.raisedTo(lval.val, lval.lev.lev)); //should use pc level with lub
+                    rt_ret(lval);
+                    return [2 /*return*/];
+            }
+        });
+    }); }, "rt_localStorageRead");
     rt_localStorageDelete = mkBase(function (env, arg) {
         //console.log("Deleting", arg.val, "in localStorage");
         assertIsString(arg);
@@ -1210,21 +1234,6 @@ function RuntimeObject() {
     this.levels = levels;
     this.persist = persist;
     this.mkLabel = rt_mkLabel;
-    this.raisedTo = function (x, y) {
-        return new Lval_js_1.LVal(x.val, lub(lub(x.lev, y.val), y.lev), lubs([x.tlev, y.tlev, __sched.pc]));
-    };
-    // this.flowsTo = function (x, y) {
-    //   return new LVal(flowsTo(x.val, y.val), lub(x.lev, y.lev), lub(x.tlev, y.tlev))
-    // }
-    /*
-    this.levelOf = function (x) {
-      return new LVal(x.lev, lub (pc, x.lev)); // 2018-10-15: AA; implementing a sticky level
-    }
-    */
-    this.unaryMinus = function (x) {
-        assertIsNumber(x);
-        return new Lval_js_1.LVal(-x.val, x.lev, x.tlev);
-    };
     this.node = rt_nodeFromProcess;
     this.raiseTrust = rt_raiseTrust;
     this.attenuate = rt_attenuate;
@@ -1256,6 +1265,21 @@ function RuntimeObject() {
     this.localStorageWrite = rt_localStorageWrite;
     this.localStorageRead = rt_localStorageRead;
     this.localStorageDelete = rt_localStorageDelete;
+    this.raisedTo = function (x, y) {
+        return new Lval_js_1.LVal(x.val, lub(lub(x.lev, y.val), y.lev), lubs([x.tlev, y.tlev, __sched.pc]));
+    };
+    // this.flowsTo = function (x, y) {
+    //   return new LVal(flowsTo(x.val, y.val), lub(x.lev, y.lev), lub(x.tlev, y.tlev))
+    // }
+    /*
+    this.levelOf = function (x) {
+      return new LVal(x.lev, lub (pc, x.lev)); // 2018-10-15: AA; implementing a sticky level
+    }
+    */
+    this.unaryMinus = function (x) {
+        assertIsNumber(x);
+        return new Lval_js_1.LVal(-x.val, x.lev, x.tlev);
+    };
     this.debugpc = mkBase(function (env, arg) {
         //    assertIsString(arg);
         rt_debug("");

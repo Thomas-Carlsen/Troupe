@@ -835,7 +835,6 @@ function initRuntime() {
                     return [4 /*yield*/, serialize_js_1.default.deserializeAsync(levels.TOP, JSON.parse(data))];
                 case 1:
                     lval = _a.sent();
-                    console.log(lval);
                     /*
                     theThread.returnInThread(dataJson);
                       __sched.scheduleThreadT(theThread);
@@ -849,8 +848,8 @@ function initRuntime() {
                     let lev = dataSplit[1].split("%")[0].replace('{','').replace('}','');
                     */
                     //let label = rtObj.mkLabel(dataJson.lev.replace('{','').replace('}',''));
-                    //rt_ret(rtObj.raisedTo(lval.val, lval.lev.lev)); //should use pc level with lub
-                    rt_ret(lval);
+                    //rt_ret(rtObj.raisedTo(lval.val, lval.lev.lev)); 
+                    rt_ret(lval); //should use pc level with lub
                     return [2 /*return*/];
             }
         });

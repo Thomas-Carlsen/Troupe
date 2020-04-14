@@ -1,11 +1,9 @@
 let 
-    val secVar = 1 raisedTo {sec}
-    val _ = localStorageWrite("secVar", secVar)
-    val secret = localStorageRead("secVar")
-    val temp = 0
-    val public = 1
+    val _ = localStorageWrite("secret", 1 raisedTo {sec})
+    val _ = localStorageWrite("public", 1)
+    val _ = localStorageWrite("temp", 0)
 
-    val temp = if secret then 1 else temp
-    val public = if temp = 0 then 0 else public
-in public
+    val _ = if localStorageRead("secret") = 1 then localStorageWrite("temp", 1) else ()
+    val _ = if localStorageRead("temp") = 0 then localStorageWrite("public", 0) else ()
+in localStorageRead("public")
 end

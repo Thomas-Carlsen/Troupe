@@ -1,5 +1,5 @@
 let 
-    val secret = 1 raisedTo {sec}
+    val secret = 0 raisedTo {sec}
     val temp = 0
     val public = 1
 

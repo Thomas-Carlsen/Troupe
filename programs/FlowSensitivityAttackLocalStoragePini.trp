@@ -3,7 +3,13 @@ let
     val _ = localStorageWrite("public", 1, {})
     val _ = localStorageWrite("temp", 0)
 
+    val t1 = pinipush authority 
     val _ = if localStorageRead("secret", {secret}) = 1 then localStorageWrite("temp", 1) else ()
+    val _ = pinipop t1
+    val _ = debugpc ()
+    val t2 = pinipush authority
     val _ = if localStorageRead("temp") = 0 then localStorageWrite("public", 0) else ()
+    val _ = pinipop t2
+    val _ = debugpc ()
 in localStorageRead("public")
 end

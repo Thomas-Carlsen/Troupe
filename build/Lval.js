@@ -12,7 +12,7 @@ var LVal = /** @class */ (function () {
         var _this = this;
         if (tlev === void 0) { tlev = null; }
         if (posInfo === void 0) { posInfo = null; }
-        debug(v, l, tlev, posInfo);
+        //debug(v, l, tlev, posInfo);
         this.val = v;
         this.lev = l;
         this.tlev = tlev == null ? l : tlev;

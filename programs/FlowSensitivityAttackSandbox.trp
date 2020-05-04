@@ -1,0 +1,2 @@
+(*sandbox (1000, fn () => spawn (fn () => print (self())))*)
+sandbox (1000, fn () => localStorageRead("secret", {secret}) )

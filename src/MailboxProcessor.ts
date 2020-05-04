@@ -69,7 +69,7 @@ class MailboxProcessor {
 
         function iterate(handlerToUse, messageToCheck) {   
             function futureMessage() {
-                debug ("unblocking");
+                debug("unblocking");
                 iterate(0, messageToCheck);
             }         
             debug(`* checkMessages  ${handlerToUse} ${messageToCheck} ${messages.length}`);

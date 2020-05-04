@@ -46,37 +46,55 @@ var Scheduler = /** @class */ (function () {
         this.__unit = new Lval_js_1.LVal(UnitBase_js_1.theBaseUnit, options_js_1.default.BOT);
     }
     Scheduler.prototype.done = function (arg) {
-        this.notifyMonitors();
-        delete this.__alive[this.currentThreadId.val.toString()];
+        try {
+            this.notifyMonitors();
+            delete this.__alive[this.currentThreadId.val.toString()];
+        }
+        catch (e) {
+            console.log("done error");
+            throw e;
+        }
     };
     Scheduler.prototype.halt = function (arg, persist) {
         if (persist === void 0) { persist = null; }
-        this.raiseCurrentThreadPCToBlockingLev();
-        var retVal = this.mkCopy(arg); //why is neccesary to make a copy?
-        this.notifyMonitors();
-        delete this.__alive[this.currentThreadId.val.toString()];
-        log(">>> Main thread finished with value: " + retVal.stringRep());
-        if (persist) {
-            this.rtObj.persist(retVal, persist);
-            log("Saved the result value in file" + persist);
+        try {
+            this.raiseCurrentThreadPCToBlockingLev();
+            var retVal = this.mkCopy(arg);
+            this.notifyMonitors();
+            delete this.__alive[this.currentThreadId.val.toString()];
+            log(">>> Main thread finished with value: " + retVal.stringRep());
+            if (persist) {
+                this.rtObj.persist(retVal, persist);
+                log("Saved the result value in file" + persist);
+            }
+        }
+        catch (e) {
+            console.log("halt error");
+            throw e;
         }
     };
     Scheduler.prototype.notifyMonitors = function (status, errstr) {
         if (status === void 0) { status = TerminationStatus.OK; }
         if (errstr === void 0) { errstr = ""; }
-        var ids = Object.keys(this.__currentThread.monitors);
-        console.log("notifyMonitors", ids);
-        debug("notifyMonitors: ids=" + ids);
-        for (var i = 0; i < ids.length; i++) {
-            var id = ids[i];
-            var toPid = this.__currentThread.monitors[id].pid;
-            var refUUID = this.__currentThread.monitors[id].uuid;
-            var thisPid = this.__currentThread.tid;
-            var statusVal = this.__currentThread.mkVal(status);
-            var reason = TerminationStatus.OK == status ? statusVal :
-                this.rtObj.mkTuple([statusVal, this.rtObj.mkVal(errstr)]);
-            var message = this.rtObj.mkVal(this.rtObj.mkTuple([this.rtObj.mkVal("DONE"), refUUID, thisPid, reason]));
-            this.rtObj.sendMessageNoChecks(toPid, message, false); // false flag means no need to return in the process
+        try {
+            var ids = Object.keys(this.__currentThread.monitors);
+            //console.log("notifyMonitors", ids);
+            debug("notifyMonitors: ids=" + ids);
+            for (var i = 0; i < ids.length; i++) {
+                var id = ids[i];
+                var toPid = this.__currentThread.monitors[id].pid;
+                var refUUID = this.__currentThread.monitors[id].uuid;
+                var thisPid = this.__currentThread.tid;
+                var statusVal = this.__currentThread.mkVal(status);
+                var reason = TerminationStatus.OK == status ? statusVal :
+                    this.rtObj.mkTuple([statusVal, this.rtObj.mkVal(errstr)]);
+                var message = this.rtObj.mkVal(this.rtObj.mkTuple([this.rtObj.mkVal("DONE"), refUUID, thisPid, reason]));
+                this.rtObj.sendMessageNoChecks(toPid, message, false); // false flag means no need to return in the process
+            }
+        }
+        catch (e) {
+            console.log("notifyMonitors error");
+            throw e;
         }
     };
     Scheduler.prototype.raiseCurrentThreadPC = function (l) {
@@ -171,8 +189,14 @@ var Scheduler = /** @class */ (function () {
         this.__funloop.push(t);
     };
     Scheduler.prototype.tail = function (thefun, arg1, arg2, nm) {
-        this.__currentThread.tailInThread(thefun, arg1, arg2, nm);
-        this.stepThread();
+        try {
+            this.__currentThread.tailInThread(thefun, arg1, arg2, nm);
+            this.stepThread();
+        }
+        catch (e) {
+            console.log("Scheduler tail Error");
+            throw e;
+        }
     };
     // Probably called from rt_ret
     Scheduler.prototype.returnInThread = function (arg) {
@@ -255,6 +279,7 @@ var Scheduler = /** @class */ (function () {
         var $$LOOPBOUND = 5000;
         for (var $$loopiter = 0; $$loopiter < $$LOOPBOUND && (this.__funloop.length > 0); $$loopiter++) {
             var next = this.__funloop.shift();
+            console.log("New CurrentThread");
             this.__currentThread = next;
             //console.log("Does next have theFun???? - is it not a Thread?")
             //console.log(next.theFun);
@@ -274,12 +299,13 @@ var Scheduler = /** @class */ (function () {
                     // we have an error inside of an receive pattern or guard;
                     // we are discarding the rest of the current thread and are
                     // scheduling the execution of the handler 
+                    //console.log("loop error: handlerError");
                     var f = this.handlerState.getTrapper().val;
                     this.__currentThread.tailInThread(f.fun, f.env, [], f.namespace);
                     this.scheduleThreadT(this.__currentThread);
                 }
                 else { // a real runtime error, must be a bug
-                    console.log("problems in the scheduler");
+                    console.log("Problems in the scheduler");
                     //console.log(theFun);
                     throw e;
                 }

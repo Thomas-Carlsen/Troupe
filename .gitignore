@@ -38,3 +38,5 @@ bin/understudy
 node_modules
 .cache
 build
+.ionide
+tester.js

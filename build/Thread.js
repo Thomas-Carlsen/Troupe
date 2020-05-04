@@ -62,6 +62,7 @@ var Thread = /** @class */ (function () {
         this.next = function () {
             // Using apply will let namespace be 'this' in theFun
             // Example of namespace: the file itself (or the Top func in the file)
+            console.log("next (fun) in thread: " + theFun);
             theFun.apply(namespace, theArgs);
         };
         // if (!pc) {
@@ -135,15 +136,21 @@ var Thread = /** @class */ (function () {
     };
     Thread.prototype.returnInThread = function (arg) {
         debug("returnInThread: with pc=" + this.pc.stringRep());
-        var rv = new Lval_js_1.LVal(arg.val, lub(arg.lev, this.pc), lub(arg.tlev, this.pc));
-        debug("returnInThread: Return val (rv) is " + rv.stringRep());
-        debug("CallStack of this thread is " + this.callStack);
-        var ret = this.callStack.pop();
-        this.pc = this.callStack.pop();
-        this._sp -= 2;
-        this.next = function () {
-            ret(rv);
-        };
+        try {
+            var rv_1 = new Lval_js_1.LVal(arg.val, lub(arg.lev, this.pc), lub(arg.tlev, this.pc));
+            debug("returnInThread: Return val (rv) is " + rv_1.stringRep());
+            debug("CallStack of this thread is " + this.callStack);
+            var ret_1 = this.callStack.pop();
+            this.pc = this.callStack.pop();
+            this._sp -= 2;
+            this.next = function () {
+                ret_1(rv_1);
+            };
+        }
+        catch (e) {
+            console.log("Thread Error: in returnInThread");
+            throw e;
+        }
     };
     Thread.prototype.pcpush = function (l, cap) {
         this.raiseBlockingThreadLev(l.lev);
@@ -264,19 +271,20 @@ var Thread = /** @class */ (function () {
         return new Lval_js_1.LVal(x, lub(this.pc, l), this.pc);
     };
     Thread.prototype.mkCopy = function (x) {
+        console.log("mkCopy");
         return new Lval_js_1.LVal(x.val, lub(x.lev, this.pc), lub(x.tlev, this.pc));
     };
     Thread.prototype.printPc = function () {
-        console.log("PC:", this.pc.stringRep());
-        console.log("BL:", this.blockingTopLev.stringRep());
+        logger.error("PC: " + this.pc.stringRep());
+        logger.error("BL: " + this.blockingTopLev.stringRep());
     };
     Thread.prototype.threadError = function (s, internal) {
         if (internal === void 0) { internal = false; }
         // 2018-12-07: AA; eventually the monitoring semantics may 
         // need to be put in here      
         if (this.handlerState.isNormal()) {
-            console.log(colors_js_1.red("Runtime error in thread " + this.tid.stringRep()));
-            console.log(colors_js_1.red(">> " + s));
+            logger.error(colors_js_1.red("Runtime error in thread " + this.tid.stringRep()));
+            logger.error(colors_js_1.red(">> " + s));
             if (internal) {
                 throw "ImplementationError";
             }
@@ -285,7 +293,7 @@ var Thread = /** @class */ (function () {
             }
         }
         else {
-            console.log(colors_js_1.yellow("Warning: runtime exception in the handler or sandbox: " + s));
+            logger.warning(colors_js_1.yellow("runtime exception in the handler or sandbox: " + s));
             var f = this.handlerState.getTrapper();
             // assert and taint
             this.rtObj.assertIsFunction(f, true); //  the true flag indicates 
@@ -293,6 +301,7 @@ var Thread = /** @class */ (function () {
             // internal to the runtime, so no assertions are normal here and therefore
             // their violation must be flagged as implementation bugs.
             this.raiseCurrentThreadPC(f.lev);
+            console.log("handlerError");
             throw "HandlerError";
             // interrupt the execution, 
             // and pass the control to the the scheduler; that will schedule the

@@ -5,14 +5,15 @@ const debug = x => logger.debug(x);
 
 import { Level }  from '../Level.js'
 
-class TagLevel extends Level {
+export class TagLevel extends Level {
     isTop: boolean;
     // have seen lev been assign to {} (when top) and new Set() (when bot)
-    constructor (lev) {
+    constructor(lev: Set<string> | {}) {
         super(lev);
-        debug(`Created a new TagLevel: ${this.stringRep()}`);
+        //debug(`Created a new TagLevel: ${this.stringRep()}`);
     }
 
+    
     stringRep() {
         // In case it is top level, which is an empty object
         if (isEmpty(this.lev))
@@ -29,22 +30,26 @@ class TagLevel extends Level {
         s += "}"
         return s;
     }
+    
 }
 
 function isEmpty(obj) {
     return Object.keys(obj).length === 0 && obj.constructor === Object;
 }
 
+// l1 and l2 are of type TagLevel (the class above)
+// since topLevel is based on an empty object and not set we donnot have forEach
+// therefore we escape if any is topLevel.
 function lub(l1, l2):any {
     if (l1 == topLevel || l2 == topLevel) {
         return topLevel;
     }
-
-    let s = new Set();
-    l1.lev.forEach(t => s.add(t));
-    l2.lev.forEach(t => s.add(t));
-    debug(`lub res:`)
-    return new TagLevel(s);    
+    
+    let tagset: Set<string> = new Set();
+    l1.lev.forEach(tag => tagset.add(tag));
+    l2.lev.forEach(tag => tagset.add(tag));
+    //debug(`lub res:`)
+    return new TagLevel(tagset);    
 }
 
 function glb(l1, l2):any {
@@ -101,16 +106,17 @@ function fromString(str2) {
         return topLevel;
     }
 
-    let s = new Set ();
+    let tagset = new Set();
     const tags = str.split(',');
 
-    tags.map ( t => {
-        if ( t != '') {
-          s.add (t.trim().toLowerCase());
+    tags.map ( tag => {
+        if ( tag != '') {
+          tagset.add(tag.trim().toLowerCase());
         }
     });
-    return new TagLevel (s);
+    return new TagLevel(tagset);
 }
+
 
 
 // Why is the level for top not an empty set instead of an empty object literal?

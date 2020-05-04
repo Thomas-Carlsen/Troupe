@@ -13,7 +13,7 @@ export class LVal {
 
     // is v never null? If not when put it in the type
     constructor(v:any, l:Level, tlev:Level = null, posInfo:string = null) {
-        debug(v, l, tlev, posInfo);
+        //debug(v, l, tlev, posInfo);
         this.val = v;
         this.lev = l;
         this.tlev = tlev == null ? l : tlev;

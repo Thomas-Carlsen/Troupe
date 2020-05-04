@@ -11,7 +11,7 @@ class Logger {
     log(mess:string) {
         term.write(mess + "\n");
         if (this.level = 'debug') 
-            console.log("log:" + this.caller + ": " + mess);
+            console.log("Log in " + this.caller + ": " + mess);
     }
     info(mess:string) {
         //console.info(this.caller + ": " + mess);
@@ -20,15 +20,20 @@ class Logger {
     debug(mess:string) {
         return;
         if (this.level == 'debug') {
-            term.write("debug:" + this.caller + ": " + mess + "\n");
+            term.write("Debug in " + this.caller + ": " + mess + "\n");
             //console.log("debug:" + this.caller + ": " + mess);
-            //console.debug(this.caller + ": " + mess);
         }
         
     }
+    warning(mess:string) {
+        // errors in term will be added in later
+        term.write("\u001b[33m" + "Warning in " + this.caller + ": " + mess + "\u001b[37m\n");
+        console.warn(this.caller + ": " + mess);
+    }
+
     error(mess:string) {
         // errors in term will be added in later
-        //term.write("error:" + this.caller + ": " + mess);
+        term.write("\u001b[31m" + "Error in " + this.caller + ": " + mess + "\u001b[37m\n");
         console.error(this.caller + ": " + mess);
     }
 }

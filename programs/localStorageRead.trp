@@ -1,1 +1,1 @@
-localStorageRead("vaba")
+localStorageRead("vaba", {secret})

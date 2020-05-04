@@ -22,9 +22,8 @@ var TagLevel = /** @class */ (function (_super) {
     __extends(TagLevel, _super);
     // have seen lev been assign to {} (when top) and new Set() (when bot)
     function TagLevel(lev) {
-        var _this = _super.call(this, lev) || this;
-        debug("Created a new TagLevel: " + _this.stringRep());
-        return _this;
+        return _super.call(this, lev) || this;
+        //debug(`Created a new TagLevel: ${this.stringRep()}`);
     }
     TagLevel.prototype.stringRep = function () {
         // In case it is top level, which is an empty object
@@ -44,18 +43,22 @@ var TagLevel = /** @class */ (function (_super) {
     };
     return TagLevel;
 }(Level_js_1.Level));
+exports.TagLevel = TagLevel;
 function isEmpty(obj) {
     return Object.keys(obj).length === 0 && obj.constructor === Object;
 }
+// l1 and l2 are of type TagLevel (the class above)
+// since topLevel is based on an empty object and not set we donnot have forEach
+// therefore we escape if any is topLevel.
 function lub(l1, l2) {
     if (l1 == topLevel || l2 == topLevel) {
         return topLevel;
     }
-    var s = new Set();
-    l1.lev.forEach(function (t) { return s.add(t); });
-    l2.lev.forEach(function (t) { return s.add(t); });
-    debug("lub res:");
-    return new TagLevel(s);
+    var tagset = new Set();
+    l1.lev.forEach(function (tag) { return tagset.add(tag); });
+    l2.lev.forEach(function (tag) { return tagset.add(tag); });
+    //debug(`lub res:`)
+    return new TagLevel(tagset);
 }
 function glb(l1, l2) {
     if (l1 == topLevel) {
@@ -99,14 +102,14 @@ function fromString(str2) {
     if (str == "#TOP") {
         return topLevel;
     }
-    var s = new Set();
+    var tagset = new Set();
     var tags = str.split(',');
-    tags.map(function (t) {
-        if (t != '') {
-            s.add(t.trim().toLowerCase());
+    tags.map(function (tag) {
+        if (tag != '') {
+            tagset.add(tag.trim().toLowerCase());
         }
     });
-    return new TagLevel(s);
+    return new TagLevel(tagset);
 }
 // Why is the level for top not an empty set instead of an empty object literal?
 // Problem: You cannot .forEach on this object (used in stringRep)

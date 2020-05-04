@@ -136,7 +136,7 @@ function compilerOutputReady(data) {
       nsFun += snippetJson.code; 
     }
 
-    let NS = new Function('rt', nsFun);
+    let NS:any = new Function('rt', nsFun);
     // console.log (NS.toString());
     ns.fun = new NS(rtObj)
   }
@@ -312,7 +312,7 @@ function compilerOutputReady(data) {
 function deserialize(lev, jsonObj, cb) {
   
   if (processing) {    
-    setImmediate (deserialize, lev, jsonObj, cb) // postpone; 2018-03-04;aa
+    setImmediate(deserialize, lev, jsonObj, cb) // postpone; 2018-03-04;aa
   } else {
     processing = true // prevent parallel deserialization attempts; important! -- leads to nasty 
                      // race conditions otherwise; 2018-11-30; AA
@@ -349,12 +349,18 @@ function deserialize(lev, jsonObj, cb) {
   }
 }
 
-function deserializeAsync (lev, jsonObj) {
+function deserializeAsync(lev, jsonObj) {
+  /*
+  return await deserialize(lev, jsonObj, (body) => {
+    return body;
+  });
+  */
   return new Promise ( (resolve, reject) => {
-    deserialize (lev, jsonObj, (body) => {
-      resolve (body)
+    deserialize(lev, jsonObj, (body) => {
+      resolve(body)
     })
   });
+  
 }
 
 
@@ -386,7 +392,7 @@ function serialize(lval, pclev) {
   let envs       = [];
 
   let level = pclev;
-
+  
   function walk(lval)  {
     // console.log("** walk", lval);
     //assert(isLVal(lval));
@@ -398,6 +404,16 @@ function serialize(lval, pclev) {
     let x = lval.val;
 
     let tupleKind = false;
+
+
+    function dfs(deps, namespace) {
+      for (let depName of deps) {
+        if (!namespace.has(depName) )  {
+          namespace.set(depName, x.namespace[depName].serialized);
+          dfs(x.namespace[depName].deps, namespace);
+        }
+      }
+    }
 
     if ( isList(x) || isTuple(x)) {
       jsonObj = [];
@@ -421,7 +437,7 @@ function serialize(lval, pclev) {
       } else {
         jsonObj = { ClosureID: closures.length  }
         seenClosures.set(x, closures.length  );
-        let jsonClosure = {};
+        let jsonClosure:any = {};
         closures.push(jsonClosure);
 
         let jsonEnvPtr;
@@ -440,7 +456,7 @@ function serialize(lval, pclev) {
             }
           }
         }
-
+        
         jsonClosure.envptr = jsonEnvPtr;
         for ( let ff in x.namespace ) {
           if (x.namespace[ff] == x.fun) {
@@ -459,16 +475,9 @@ function serialize(lval, pclev) {
 
             namespace.set(ff, x.fun.serialized)
 
-            function dfs(deps) {
-              for (let depName of deps) {
-                if (!namespace.has(depName) )  {
-                  namespace.set(depName, x.namespace[depName].serialized);
-                  dfs(x.namespace[depName].deps);
-                }
-              }
-            }
+            
 
-            dfs(x.fun.deps);
+            dfs(x.fun.deps, namespace);
 
             jsonClosure.namespacePtr = jsonNamespacePtr;
             jsonClosure.fun = ff;

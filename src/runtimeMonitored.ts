@@ -49,6 +49,7 @@ import { theBaseUnit as __unitbase } from './UnitBase.js';
 mkLogger("RTM").debug(`Imported UnitBase.js`);
 import SS from './serialize.js';
 mkLogger("RTM").debug(`Imported serialize.js`);
+import {TagLevel} from './levels/tagsets.js';
 import { startp2p } from './p2p/p2p.js';
 mkLogger("RTM").debug(`Imported p2p.js`);
 
@@ -142,6 +143,7 @@ debug(`Created GLOBALS`);
 // CLASSES 
 class RtEnv {
   constructor() {
+    console.log("New rt Env");
     // this.ret = __sched.ret;
   }
 }
@@ -197,6 +199,7 @@ function lubs(x) {
 // --------------------------------------------------
 
 async function spawnAtNode(nodeid, f) {
+  console.log("spawnAtNode");
   // debug ("* rt spawnAtNode ", nodeid);
   let node = __nodeManager.getNode(nodeid.val);
   // debug ("XX", node);
@@ -230,7 +233,7 @@ async function spawnAtNode(nodeid, f) {
   try {
     let body1 = await localNode.spawnp2p(node.nodeId, data);
     // todo-api: localhost/../serialize
-    let body = await SS.deserializeAsync(nodeTrustLevel(node.nodeId), body1)
+    let body:any  = await SS.deserializeAsync(nodeTrustLevel(node.nodeId), body1)
     let pid = new ProcessID(body.val.uuid, body.val.pid, body.val.node);
     theThread.returnInThread(new LVal(pid, body.lev));
 
@@ -245,6 +248,7 @@ async function spawnAtNode(nodeid, f) {
 
 
 function remoteSpawnOK() {
+  console.log("remoteSpawnOK");
   return _allowRemoteSpawn;
 }
 
@@ -266,6 +270,7 @@ function remoteSpawnOK() {
  *    The identity of the node that initiates the spawning.
  */
 async function spawnFromRemote(jsonObj, fromNode) {
+  console.log("spawnFromRemote");
 
   // 2018-05-17: AA; note that this _only_ uses the lf.lev and
   // is completely independent of the current thread's pc;
@@ -273,15 +278,14 @@ async function spawnFromRemote(jsonObj, fromNode) {
   let nodeLev = nodeTrustLevel(fromNode);
 
   // todo-api: localhost/../serialize
-  let lf = await SS.deserializeAsync(nodeLev, jsonObj)
+  let lf: any = await SS.deserializeAsync(nodeLev, jsonObj)
   let f = lf.val;
-  let newPid =
-    __sched.scheduleNewThreadAtLevel(
-      f.fun
-      , [f.env, __unit]
-      , f.namespace
-      , lf.lev
-      , lf.lev
+  let newPid = __sched.scheduleNewThreadAtLevel(
+      f.fun, 
+      [f.env, __unit], 
+      f.namespace, 
+      lf.lev, 
+      lf.lev
     );
 
   // 2018-09-19: AA: because we need to send some info back, we have to invoke
@@ -324,8 +328,9 @@ function persist(obj, path) {
  *    The node identity of the sender node
  */
 async function receiveFromRemote(pid, jsonObj, fromNode) {
+  console.log("receiveFromRemote")
   // todo-api: localhost/../serialize
-  let data = await SS.deserializeAsync(nodeTrustLevel(fromNode), jsonObj)
+  let data:any = await SS.deserializeAsync(nodeTrustLevel(fromNode), jsonObj)
   // debug ("* rt receiveFromremote * " + fromNode);
 
   // TODO: 2018-07-23: do we need to do some more raising
@@ -454,6 +459,7 @@ function initRuntime() {
   }, "sleep");
 
   rt_sandbox = mkBase((env, arg) => {
+    console.log("sandbox");
     assertIsNTuple(arg, 2);
     let theThread = __sched.__currentThread;
     let threadState = theThread.exportState()
@@ -496,13 +502,19 @@ function initRuntime() {
 
       // we check whether the thread is no longer scheduled
       if (done || trapperInvoked || theThread.sleeping) {
+        console.log("sandbox done: ", done);
+        console.log("sandbox trapperInvoked: ", trapperInvoked);
+        console.log("sandbox theThread.sleeping: ", theThread.sleeping);
         if (done) {
+          console.log("sandbox: thread is done");
           theThread.returnInThread(ok(retVal, resultLabel));
         } else {
           if (theThread.sleeping) {
+            console.log("sandbox: thread is sleeping");
             theThread.sleeping = false;
             clearTimeout(theThread.timeoutObject);
           }
+          console.log("sandbox inside timeout");
           theThread.returnInThread(bad(__unit, resultLabel));
         }
 
@@ -513,6 +525,7 @@ function initRuntime() {
         __sched.resumeLoopAsync();
 
       } else {
+        console.log("sandbox: thread is no longer scheduled");
         theThread.killCounter++;
         // the thread is alive and is somewhere in the scheduler queue, so
         // we just change its return kont
@@ -544,11 +557,24 @@ function initRuntime() {
     theThread.handlerState = new SandboxStatus.INSANDBOX(trapper);
     theThread.barrierdepth = 0;
     rt_tailcall(arg.val[1], __unit);
+    try {
+      
+    } catch (e) {
+      console.log("TAILCALL in sandbox ERROR!");
+    }
+    
 
   }, "sandbox");
 
   rt_spawn = mkBase((env, larg) => {
-    assertNormalState("spawn")
+    try {
+      assertNormalState("spawn");
+    } catch (e) {
+      console.log("SPAWN Error");
+      throw e;
+    }
+    
+    
     // debug ("* rt rt_spawn *", larg.val, larg.lev);
     raiseCurrentThreadPC(larg.lev);
     let arg = larg.val;
@@ -937,7 +963,7 @@ function initRuntime() {
         try {
           let body1 = await localNode.whereisp2p(n, k);
           // todo-api: localhost/../serialize
-          let body = await SS.deserializeAsync(nodeTrustLevel(n), body1);
+          let body:any = await SS.deserializeAsync(nodeTrustLevel(n), body1);
           let pid = new ProcessID(body.val.uuid, body.val.pid, body.val.node);
 
           theThread.returnInThread(theThread.mkValWithLev(pid, body.lev));
@@ -952,23 +978,72 @@ function initRuntime() {
     }
   }, "whereis");
 
-  rt_ret = (arg) => __sched.returnInThread(arg);
+  rt_ret = (arg) => {
+    console.log("rt ret");
+    __sched.returnInThread(arg);
+  }
 
   rt_localStorageWrite = mkBase((env, arg) => {
-    assertIsNTuple(arg, 2);
+    try {
+      assertNormalState("localStorageWrite");
+    } catch (e) {
+      console.log(e);
+      logger.warning("localStorageWrite is not allowed inside sandbox");
+      return;
+    }
+    
+    //assertIsNTuple(arg, 2); // we might have 3
     assertIsString(arg.val[0]);
+    let keyName = arg.val[0].val;
     let data = arg.val[1];
-    let serializeObj = SS.serialize(data, __sched.pc).data;
-    localStorage.setItem(arg.val[0].val, JSON.stringify(serializeObj));
+    let level: Set<string> = arg.val[2] != null ? arg.val[2].val.lev : null;
+
+    if (level != null) {
+      let key = {"keyName": keyName, "level": level};
+      let serializeObj = SS.serialize(data, __sched.pc).data;
+      localStorage.setItem(JSON.stringify(key), JSON.stringify(serializeObj));
+    } else {
+      let key = {"keyName": keyName}
+      let serializeObj = SS.serialize(data, __sched.pc).data;
+      localStorage.setItem(JSON.stringify(key), JSON.stringify(serializeObj));
+    }
+    
     rt_ret(__unit);
   }, "localStorageWrite");
 
-  rt_localStorageRead = mkBase( async (env, arg) => {
-    assertIsString(arg);
-    let key = arg.val;
-    let data = localStorage.getItem(key);
-    let lval = await SS.deserializeAsync(levels.TOP, JSON.parse(data));
-    rt_ret(lval); 
+  rt_localStorageRead = mkBase( (env, arg) => {
+    assertNormalState("localStorageRead");
+    let key;
+    if (typeof arg.val === 'string') {
+       key = {"keyName": arg.val};
+    } else {
+      assertIsNTuple(arg, 2);
+      assertIsString(arg.val[0]);
+      let keyName = arg.val[0].val;
+      let level: Set<string> = arg.val[1].val.lev;
+      key = {"keyName": keyName, "level": level}
+    }
+
+    //let data = await localStorage.getItem(JSON.stringify(key));
+    let data = localStorage.getItem(JSON.stringify(key));
+    if (data == null) {
+      let err_mess= `This variable does not exist in local storage: '${JSON.stringify(key)}'`;
+      logger.error(err_mess);
+      threadError(err_mess);
+    } else {
+      (async () => {
+      try {
+        //let lval = await SS.deserializeAsync(levels.TOP, JSON.parse(data));
+        let lval = await SS.deserializeAsync(levels.TOP, JSON.parse(data));
+        rt_ret(lval);
+      } catch (e) {
+        let err_mess = "Something went wrong in deserializing the local storage variable: " + JSON.stringify(key);
+        logger.error(err_mess);
+        threadError(err_mess);
+        console.log(e);
+      }})();
+    }
+     
   }, "rt_localStorageRead");
 
   rt_localStorageDelete = mkBase((env, arg) => {
@@ -979,7 +1054,13 @@ function initRuntime() {
 
 }
 
-initRuntime();
+try {
+  initRuntime();
+} catch (e) {
+  console.log("InitRuntime Error");
+  logger.error(e);
+}
+
 
 
 
@@ -1141,6 +1222,7 @@ function listStringRep(x, omitLevels = false, taintRef = null) {
 }
 
 function rt_mkTuple(x) {
+  console.log("rt_mkTuple");
   x.stringRep = function (omitLevels = false, taintRef = null) {
     return ("(" + listStringRep(x, omitLevels, taintRef) + ")")
   }
@@ -1165,10 +1247,12 @@ function threadError(s, internal = false) {
 
 
 function rt_error(x) {
+  console.log("rt_error");
   threadError(x.val);
 }
 
 function rt_errorPos(x, pos) {
+  console.log("rt_errorPos");
   if (pos != '') {
     threadError(x.val + " at " + pos);
   } else {
@@ -1177,16 +1261,22 @@ function rt_errorPos(x, pos) {
 }
 
 function rt_tailcall(lff, arg) {
-  assertIsFunction(lff);
-  if (!lff.val.fun) {
-    log("UNDEF FUN")
-  }
-  raiseCurrentThreadPC(lff.lev);
-  let ff = lff.val;
-  //__sched.tailNext ( () => {  ff.fun.apply (ff.namespace, [ff.env, arg]) } );
-  // __sched.tailNext ( () => { ff.fun (ff.env, arg) } );
-  __sched.tail(ff.fun, ff.env, arg, ff.namespace);
+  console.log("rt_tailcall");
+  try {
+    assertIsFunction(lff);
+    if (!lff.val.fun) {
+      log("UNDEF FUN")
+    }
+    raiseCurrentThreadPC(lff.lev);
 
+    let ff = lff.val;
+    //__sched.tailNext ( () => {  ff.fun.apply (ff.namespace, [ff.env, arg]) } );
+    // __sched.tailNext ( () => { ff.fun (ff.env, arg) } );
+    __sched.tail(ff.fun, ff.env, arg, ff.namespace);
+  } catch (e) {
+    console.log("rt_tailcall error");
+    throw e;
+  }
 }
 
 function runtimeEquals(o1, o2) {
@@ -1571,13 +1661,14 @@ function RuntimeObject() {
   this.getVal = function (x) {
     return x.val
   }
-  this.branch = function (x) {
+  this.branch = x => {
 
     raiseCurrentThreadPC(x.lev);
 
   }
 
   this.push = (x) => {
+    console.log("rt push");
     __sched.__currentThread.callInThread(x);
   }
 
@@ -1707,15 +1798,20 @@ function RuntimeObject() {
 
 
 function mkRuntime() {
-  //todo: set check bool for if mkRuntime has been run - isRuntimeCreated
-  rtObj = new RuntimeObject();
-  debug(`Initialized RuntimeObject i.e. rtObj`);
-  __theMailbox.setRuntimeObject(rtObj);
-  debug(`Setting rtObj as rt in __theMailbox`);
+  try {
+    //todo: set check bool for if mkRuntime has been run - isRuntimeCreated
+    rtObj = new RuntimeObject();
+    debug(`Initialized RuntimeObject i.e. rtObj`);
+    __theMailbox.setRuntimeObject(rtObj);
+    debug(`Setting rtObj as rt in __theMailbox`);
 
-  __sched.setRuntimeObject(rtObj);
-  debug(`Setting rtObj as rt in __sched`);
-  return rtObj;
+    __sched.setRuntimeObject(rtObj);
+    debug(`Setting rtObj as rt in __sched`);
+    return rtObj;
+  } catch (e) {
+    console.log("mkRuntime Error");
+  }
+
 }
 
 
@@ -1751,10 +1847,15 @@ process.on('SIGINT', () => {
 */
 
 async function startRuntime(file) {
-  //todo: abort with a message if isRuntimeCreated is false
 
+  //todo: abort with a message if isRuntimeCreated is false
   // todo-api: localhost/../serialize
-  SS.setRuntimeObj(rtObj);
+  try {
+    SS.setRuntimeObj(rtObj);
+  } catch (e) {
+    console.log("SS.setRuntimeObj Error");
+  }
+  
   // debug ("runing with uuid:", rt_uuid)
 
   //todo: yargs
@@ -1762,7 +1863,7 @@ async function startRuntime(file) {
 
   // p is either null or peerInfo.id.toB58String() (i.e. id string for localnode)
   function networkReady(p: string | null) {
-
+    
     if (p) {
       debug("network ready")
     } else {
@@ -1770,7 +1871,12 @@ async function startRuntime(file) {
     }
 
     let hostname = p;
-    __nodeManager.setLocalHostPort(hostname);
+    try {
+      __nodeManager.setLocalHostPort(hostname);
+    } catch (e) {
+      console.log("nodeManager.setLocalHostPort Error");
+    }
+    
 
     // first thing we do is link libraries
     // once that is done; the linker function
@@ -1785,22 +1891,32 @@ async function startRuntime(file) {
       //
 
       let stopWhenAllThreadsAreDone = p == null ? true : false;
-      __sched.initScheduler(__nodeManager.getLocalNode(), stopWhenAllThreadsAreDone, cleanup);
+      try {
+        __sched.initScheduler(__nodeManager.getLocalNode(), stopWhenAllThreadsAreDone, cleanup);
+      } catch (e) {
+        console.log("sched.initScheduler Error");
+      }
+      
 
       let mainAuthority = new LVal(new Authority(levels.TOP), levels.BOT);
       debug(`Created mainAuthority`);
 
       // Creating a new process and thread and put the thread inside the funloop of the schedulor
       debug(`scheduleNewThreadAtLevel: thefun=main args=[null, mainAuthority] nm=file levpc=BOT levblock=BOT ismain=true, persist=null`);
-      __sched.scheduleNewThreadAtLevel(
-        file.main,
-        [null, mainAuthority], // Arguments to main - env=null, authorityarg=mainAuthority
-        file,
-        levels.BOT,
-        levels.BOT,
-        true,
-        persist
-      );
+      try {
+        __sched.scheduleNewThreadAtLevel(
+          file.main,
+          [null, mainAuthority], // Arguments to main - env=null, authorityarg=mainAuthority
+          file,
+          levels.BOT,
+          levels.BOT,
+          true,
+          persist
+        );
+      } catch (e) {
+        console.log("sched.scheduleNewThreadAtLevel Error");
+      }
+      
 
       // This is the execution part (takes Threads out of the funloop and executes them)
       __sched.loop();

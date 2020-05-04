@@ -2,9 +2,12 @@ import {mkLogger} from './logger.js';
 const logger = mkLogger('Level');
 const debug = x => logger.debug(x);
 
+// A specific level to tag expressions i.e. a label
+type Tagset = Set<string> | {};
+
+
 export class Level {
-  // I think lev is a Set type
-  lev: any;
+  lev;
   isLevel: boolean;
     constructor(lev) {
       debug(`Created a new level with value ${lev.toString()}`);

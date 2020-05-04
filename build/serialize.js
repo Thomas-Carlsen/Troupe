@@ -305,6 +305,11 @@ function deserialize(lev, jsonObj, cb) {
     }
 }
 function deserializeAsync(lev, jsonObj) {
+    /*
+    return await deserialize(lev, jsonObj, (body) => {
+      return body;
+    });
+    */
     return new Promise(function (resolve, reject) {
         deserialize(lev, jsonObj, function (body) {
             resolve(body);
@@ -341,6 +346,15 @@ function serialize(lval, pclev) {
         var jsonObj;
         var x = lval.val;
         var tupleKind = false;
+        function dfs(deps, namespace) {
+            for (var _i = 0, deps_1 = deps; _i < deps_1.length; _i++) {
+                var depName = deps_1[_i];
+                if (!namespace.has(depName)) {
+                    namespace.set(depName, x.namespace[depName].serialized);
+                    dfs(x.namespace[depName].deps, namespace);
+                }
+            }
+        }
         if (isList(x) || isTuple(x)) {
             jsonObj = [];
             for (var i = 0; i < x.length; i++) {
@@ -380,38 +394,26 @@ function serialize(lval, pclev) {
                     }
                 }
                 jsonClosure.envptr = jsonEnvPtr;
-                var _loop_1 = function (ff) {
+                for (var ff in x.namespace) {
                     if (x.namespace[ff] == x.fun) {
                         var jsonNamespacePtr = void 0;
-                        var namespace_1;
+                        var namespace = void 0;
                         if (seenNamespaces.has(x.namespace)) {
                             var n_id = seenNamespaces.get(x.namespace);
                             jsonNamespacePtr = { NamespaceID: n_id };
-                            namespace_1 = namespaces[n_id];
+                            namespace = namespaces[n_id];
                         }
                         else {
                             jsonNamespacePtr = { NamespaceID: namespaces.length };
                             seenNamespaces.set(x.namespace, namespaces.length);
-                            namespace_1 = new Map();
-                            namespaces.push(namespace_1);
+                            namespace = new Map();
+                            namespaces.push(namespace);
                         }
-                        namespace_1.set(ff, x.fun.serialized);
-                        function dfs(deps) {
-                            for (var _i = 0, deps_1 = deps; _i < deps_1.length; _i++) {
-                                var depName = deps_1[_i];
-                                if (!namespace_1.has(depName)) {
-                                    namespace_1.set(depName, x.namespace[depName].serialized);
-                                    dfs(x.namespace[depName].deps);
-                                }
-                            }
-                        }
-                        dfs(x.fun.deps);
+                        namespace.set(ff, x.fun.serialized);
+                        dfs(x.fun.deps, namespace);
                         jsonClosure.namespacePtr = jsonNamespacePtr;
                         jsonClosure.fun = ff;
                     }
-                };
-                for (var ff in x.namespace) {
-                    _loop_1(ff);
                 }
             }
             // } else if (isProcessId(x)) {

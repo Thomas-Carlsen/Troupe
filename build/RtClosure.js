@@ -1,10 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var RtClosure = /** @class */ (function () {
-    function RtClosure(e, p, f) {
-        this.env = e;
-        this.fun = f;
-        this.namespace = p;
+    function RtClosure(env, p, fun) {
+        console.log("New Closure");
+        this.env = env;
+        this.fun = fun;
+        this.namespace = p; // pointer. So we can fields of this object i.e. namespace
         this.stringRep = function (omitLevels) {
             if (omitLevels === void 0) { omitLevels = false; }
             return "fn => ..";

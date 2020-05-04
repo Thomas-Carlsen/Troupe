@@ -168,6 +168,7 @@ debug("Created GLOBALS");
 // CLASSES 
 var RtEnv = /** @class */ (function () {
     function RtEnv() {
+        console.log("New rt Env");
         // this.ret = __sched.ret;
     }
     return RtEnv;
@@ -211,6 +212,7 @@ function spawnAtNode(nodeid, f) {
         return __generator(this, function (_b) {
             switch (_b.label) {
                 case 0:
+                    console.log("spawnAtNode");
                     node = __nodeManager.getNode(nodeid.val);
                     _a = serialize_js_1.default.serialize(f, lub(__sched.pc, nodeid.lev)), data = _a.data, level = _a.level;
                     trustLevel = nodeTrustLevel(node.nodeId);
@@ -244,6 +246,7 @@ function spawnAtNode(nodeid, f) {
     });
 }
 function remoteSpawnOK() {
+    console.log("remoteSpawnOK");
     return _allowRemoteSpawn;
 }
 /**
@@ -268,6 +271,7 @@ function spawnFromRemote(jsonObj, fromNode) {
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
+                    console.log("spawnFromRemote");
                     nodeLev = nodeTrustLevel(fromNode);
                     return [4 /*yield*/, serialize_js_1.default.deserializeAsync(nodeLev, jsonObj)];
                 case 1:
@@ -304,11 +308,13 @@ function receiveFromRemote(pid, jsonObj, fromNode) {
         var data, fromNodeId, toPid;
         return __generator(this, function (_a) {
             switch (_a.label) {
-                case 0: return [4 /*yield*/, serialize_js_1.default.deserializeAsync(nodeTrustLevel(fromNode), jsonObj)
-                    // debug ("* rt receiveFromremote * " + fromNode);
-                    // TODO: 2018-07-23: do we need to do some more raising
-                    // about the level of the fromNode?; AA
-                ];
+                case 0:
+                    console.log("receiveFromRemote");
+                    return [4 /*yield*/, serialize_js_1.default.deserializeAsync(nodeTrustLevel(fromNode), jsonObj)
+                        // debug ("* rt receiveFromremote * " + fromNode);
+                        // TODO: 2018-07-23: do we need to do some more raising
+                        // about the level of the fromNode?; AA
+                    ];
                 case 1:
                     data = _a.sent();
                     fromNodeId = __sched.mkVal(fromNode);
@@ -418,6 +424,7 @@ function initRuntime() {
             }, delay);
     }, "sleep");
     rt_sandbox = mkBase(function (env, arg) {
+        console.log("sandbox");
         assertIsNTuple(arg, 2);
         var theThread = __sched.__currentThread;
         var threadState = theThread.exportState();
@@ -448,14 +455,20 @@ function initRuntime() {
             // 2019-01-31: AA; obs: this is subtle
             // we check whether the thread is no longer scheduled
             if (done || trapperInvoked || theThread.sleeping) {
+                console.log("sandbox done: ", done);
+                console.log("sandbox trapperInvoked: ", trapperInvoked);
+                console.log("sandbox theThread.sleeping: ", theThread.sleeping);
                 if (done) {
+                    console.log("sandbox: thread is done");
                     theThread.returnInThread(ok(retVal, resultLabel));
                 }
                 else {
                     if (theThread.sleeping) {
+                        console.log("sandbox: thread is sleeping");
                         theThread.sleeping = false;
                         clearTimeout(theThread.timeoutObject);
                     }
+                    console.log("sandbox inside timeout");
                     theThread.returnInThread(bad(__unit, resultLabel));
                 }
                 // because the thread has finished, we need 
@@ -464,6 +477,7 @@ function initRuntime() {
                 __sched.resumeLoopAsync();
             }
             else {
+                console.log("sandbox: thread is no longer scheduled");
                 theThread.killCounter++;
                 // the thread is alive and is somewhere in the scheduler queue, so
                 // we just change its return kont
@@ -489,9 +503,20 @@ function initRuntime() {
         theThread.handlerState = new SandboxStatus_js_1.HandlerState.INSANDBOX(trapper);
         theThread.barrierdepth = 0;
         rt_tailcall(arg.val[1], __unit);
+        try {
+        }
+        catch (e) {
+            console.log("TAILCALL in sandbox ERROR!");
+        }
     }, "sandbox");
     rt_spawn = mkBase(function (env, larg) {
-        assertNormalState("spawn");
+        try {
+            assertNormalState("spawn");
+        }
+        catch (e) {
+            console.log("SPAWN Error");
+            throw e;
+        }
         // debug ("* rt rt_spawn *", larg.val, larg.lev);
         raiseCurrentThreadPC(larg.lev);
         var arg = larg.val;
@@ -808,60 +833,106 @@ function initRuntime() {
             }); })();
         }
     }, "whereis");
-    // is it always taken a LVal as input?
-    rt_ret = function (arg) { return __sched.returnInThread(arg); };
+    rt_ret = function (arg) {
+        console.log("rt ret");
+        __sched.returnInThread(arg);
+    };
     rt_localStorageWrite = mkBase(function (env, arg) {
-        //console.log("Writing", arg.val[0].val, "to localstorage");
-        assertIsNTuple(arg, 2);
+        try {
+            assertNormalState("localStorageWrite");
+        }
+        catch (e) {
+            console.log(e);
+            logger.warning("localStorageWrite is not allowed inside sandbox");
+            return;
+        }
+        //assertIsNTuple(arg, 2); // we might have 3
         assertIsString(arg.val[0]);
-        //assertIsString(arg.val[1]); // read only returns strings, so it is best to also write them
-        // Should also make a check of the second argument
+        var keyName = arg.val[0].val;
         var data = arg.val[1];
-        var serializeObj = serialize_js_1.default.serialize(data, __sched.pc).data;
-        localStorage.setItem(arg.val[0].val, JSON.stringify(serializeObj));
-        //log('localStorage');
+        var level = arg.val[2] != null ? arg.val[2].val.lev : null;
+        if (level != null) {
+            var key = { "keyName": keyName, "level": level };
+            var serializeObj = serialize_js_1.default.serialize(data, __sched.pc).data;
+            localStorage.setItem(JSON.stringify(key), JSON.stringify(serializeObj));
+        }
+        else {
+            var key = { "keyName": keyName };
+            var serializeObj = serialize_js_1.default.serialize(data, __sched.pc).data;
+            localStorage.setItem(JSON.stringify(key), JSON.stringify(serializeObj));
+        }
         rt_ret(__unit);
     }, "localStorageWrite");
-    rt_localStorageRead = mkBase(function (env, arg) { return __awaiter(_this, void 0, void 0, function () {
-        var theThread, key, data, lval;
-        return __generator(this, function (_a) {
-            switch (_a.label) {
-                case 0:
-                    //console.log("Reading", arg.val, "in localStorage");
-                    assertIsString(arg);
-                    theThread = __sched.__currentThread;
-                    key = arg.val;
-                    data = localStorage.getItem(key);
-                    return [4 /*yield*/, serialize_js_1.default.deserializeAsync(levels.TOP, JSON.parse(data))];
-                case 1:
-                    lval = _a.sent();
-                    /*
-                    theThread.returnInThread(dataJson);
-                      __sched.scheduleThreadT(theThread);
-                      __sched.resumeLoopAsync();
-                    */
-                    /*
-                    //let data = localStorage.getItem(arg.val);
-                    let dataSplit = data.split("@");
-                    let fixedStrVal = dataSplit[0].replace(/"/g, '');
-                    let val = rtObj.mkValPos(fixedStrVal,'');
-                    let lev = dataSplit[1].split("%")[0].replace('{','').replace('}','');
-                    */
-                    //let label = rtObj.mkLabel(dataJson.lev.replace('{','').replace('}',''));
-                    //rt_ret(rtObj.raisedTo(lval.val, lval.lev.lev)); 
-                    rt_ret(lval); //should use pc level with lub
-                    return [2 /*return*/];
-            }
-        });
-    }); }, "rt_localStorageRead");
+    rt_localStorageRead = mkBase(function (env, arg) {
+        assertNormalState("localStorageRead");
+        /*
+        try {
+          assertNormalState("localStorageRead");
+        } catch (e) {
+          //console.error(e);
+          logger.warning("localStorageRead is not allowed inside sandbox");
+          let f = __sched.handlerState.getTrapper();
+          rtObj.assertIsFunction(f, true);
+          __sched.raiseCurrentThreadPC(f.lev);
+          return;
+        }
+        */
+        var key;
+        if (typeof arg.val === 'string') {
+            key = { "keyName": arg.val };
+        }
+        else {
+            assertIsNTuple(arg, 2);
+            assertIsString(arg.val[0]);
+            var keyName = arg.val[0].val;
+            var level = arg.val[1].val.lev;
+            key = { "keyName": keyName, "level": level };
+        }
+        //let data = await localStorage.getItem(JSON.stringify(key));
+        var data = localStorage.getItem(JSON.stringify(key));
+        if (data == null) {
+            var err_mess = "This variable does not exist in local storage: '" + JSON.stringify(key) + "'";
+            logger.error(err_mess);
+            threadError(err_mess);
+        }
+        else {
+            (function () { return __awaiter(_this, void 0, void 0, function () {
+                var lval, e_1, err_mess;
+                return __generator(this, function (_a) {
+                    switch (_a.label) {
+                        case 0:
+                            _a.trys.push([0, 2, , 3]);
+                            return [4 /*yield*/, serialize_js_1.default.deserializeAsync(levels.TOP, JSON.parse(data))];
+                        case 1:
+                            lval = _a.sent();
+                            rt_ret(lval);
+                            return [3 /*break*/, 3];
+                        case 2:
+                            e_1 = _a.sent();
+                            err_mess = "Something went wrong in deserializing the local storage variable: " + JSON.stringify(key);
+                            logger.error(err_mess);
+                            threadError(err_mess);
+                            console.log(e_1);
+                            return [3 /*break*/, 3];
+                        case 3: return [2 /*return*/];
+                    }
+                });
+            }); })();
+        }
+    }, "rt_localStorageRead");
     rt_localStorageDelete = mkBase(function (env, arg) {
-        //console.log("Deleting", arg.val, "in localStorage");
         assertIsString(arg);
         localStorage.removeItem(arg.val);
         rt_ret(__unit);
     }, "rt_localStorageDelete");
 }
-initRuntime();
+try {
+    initRuntime();
+}
+catch (e) {
+    console.log("InitRuntime Error");
+    logger.error(e);
+}
 function okToDeclassify(levFrom, levTo, auth) {
     var _l = lubs([auth.val.authorityLevel, levTo.val]);
     return flowsTo(levFrom.lev, _l);
@@ -994,6 +1065,7 @@ function listStringRep(x, omitLevels, taintRef) {
     return s;
 }
 function rt_mkTuple(x) {
+    console.log("rt_mkTuple");
     x.stringRep = function (omitLevels, taintRef) {
         if (omitLevels === void 0) { omitLevels = false; }
         if (taintRef === void 0) { taintRef = null; }
@@ -1016,9 +1088,11 @@ function threadError(s, internal) {
     return __sched.__currentThread.threadError(s, internal);
 }
 function rt_error(x) {
+    console.log("rt_error");
     threadError(x.val);
 }
 function rt_errorPos(x, pos) {
+    console.log("rt_errorPos");
     if (pos != '') {
         threadError(x.val + " at " + pos);
     }
@@ -1027,15 +1101,22 @@ function rt_errorPos(x, pos) {
     }
 }
 function rt_tailcall(lff, arg) {
-    assertIsFunction(lff);
-    if (!lff.val.fun) {
-        log("UNDEF FUN");
+    console.log("rt_tailcall");
+    try {
+        assertIsFunction(lff);
+        if (!lff.val.fun) {
+            log("UNDEF FUN");
+        }
+        raiseCurrentThreadPC(lff.lev);
+        var ff = lff.val;
+        //__sched.tailNext ( () => {  ff.fun.apply (ff.namespace, [ff.env, arg]) } );
+        // __sched.tailNext ( () => { ff.fun (ff.env, arg) } );
+        __sched.tail(ff.fun, ff.env, arg, ff.namespace);
     }
-    raiseCurrentThreadPC(lff.lev);
-    var ff = lff.val;
-    //__sched.tailNext ( () => {  ff.fun.apply (ff.namespace, [ff.env, arg]) } );
-    // __sched.tailNext ( () => { ff.fun (ff.env, arg) } );
-    __sched.tail(ff.fun, ff.env, arg, ff.namespace);
+    catch (e) {
+        console.log("rt_tailcall error");
+        throw e;
+    }
 }
 function runtimeEquals(o1, o2) {
     if (typeof o1.atom != "undefined" && typeof o2.atom != "undefined") {
@@ -1378,6 +1459,7 @@ function RuntimeObject() {
         raiseCurrentThreadPC(x.lev);
     };
     this.push = function (x) {
+        console.log("rt push");
         __sched.__currentThread.callInThread(x);
     };
     this.assertOrError = function (x) {
@@ -1465,14 +1547,19 @@ function RuntimeObject() {
     });
 }
 function mkRuntime() {
-    //todo: set check bool for if mkRuntime has been run - isRuntimeCreated
-    rtObj = new RuntimeObject();
-    debug("Initialized RuntimeObject i.e. rtObj");
-    __theMailbox.setRuntimeObject(rtObj);
-    debug("Setting rtObj as rt in __theMailbox");
-    __sched.setRuntimeObject(rtObj);
-    debug("Setting rtObj as rt in __sched");
-    return rtObj;
+    try {
+        //todo: set check bool for if mkRuntime has been run - isRuntimeCreated
+        rtObj = new RuntimeObject();
+        debug("Initialized RuntimeObject i.e. rtObj");
+        __theMailbox.setRuntimeObject(rtObj);
+        debug("Setting rtObj as rt in __theMailbox");
+        __sched.setRuntimeObject(rtObj);
+        debug("Setting rtObj as rt in __sched");
+        return rtObj;
+    }
+    catch (e) {
+        console.log("mkRuntime Error");
+    }
 }
 exports.mkRuntime = mkRuntime;
 function cleanup(cb) {
@@ -1515,7 +1602,12 @@ function startRuntime(file) {
                 debug("network not initialized");
             }
             var hostname = p;
-            __nodeManager.setLocalHostPort(hostname);
+            try {
+                __nodeManager.setLocalHostPort(hostname);
+            }
+            catch (e) {
+                console.log("nodeManager.setLocalHostPort Error");
+            }
             // first thing we do is link libraries
             // once that is done; the linker function
             // will call back to our starting function
@@ -1527,13 +1619,23 @@ function startRuntime(file) {
                 // initializations is important.
                 //
                 var stopWhenAllThreadsAreDone = p == null ? true : false;
-                __sched.initScheduler(__nodeManager.getLocalNode(), stopWhenAllThreadsAreDone, cleanup);
+                try {
+                    __sched.initScheduler(__nodeManager.getLocalNode(), stopWhenAllThreadsAreDone, cleanup);
+                }
+                catch (e) {
+                    console.log("sched.initScheduler Error");
+                }
                 var mainAuthority = new Lval_js_1.LVal(new Authority_js_1.Authority(levels.TOP), levels.BOT);
                 debug("Created mainAuthority");
                 // Creating a new process and thread and put the thread inside the funloop of the schedulor
                 debug("scheduleNewThreadAtLevel: thefun=main args=[null, mainAuthority] nm=file levpc=BOT levblock=BOT ismain=true, persist=null");
-                __sched.scheduleNewThreadAtLevel(file.main, [null, mainAuthority], // Arguments to main - env=null, authorityarg=mainAuthority
-                file, levels.BOT, levels.BOT, true, persist);
+                try {
+                    __sched.scheduleNewThreadAtLevel(file.main, [null, mainAuthority], // Arguments to main - env=null, authorityarg=mainAuthority
+                    file, levels.BOT, levels.BOT, true, persist);
+                }
+                catch (e) {
+                    console.log("sched.scheduleNewThreadAtLevel Error");
+                }
                 // This is the execution part (takes Threads out of the funloop and executes them)
                 __sched.loop();
                 debug("Declaring cb for loadlibs of file ENDED");
@@ -1543,7 +1645,12 @@ function startRuntime(file) {
         return __generator(this, function (_a) {
             //todo: abort with a message if isRuntimeCreated is false
             // todo-api: localhost/../serialize
-            serialize_js_1.default.setRuntimeObj(rtObj);
+            try {
+                serialize_js_1.default.setRuntimeObj(rtObj);
+            }
+            catch (e) {
+                console.log("SS.setRuntimeObj Error");
+            }
             persist = null // yargs.argv.persist ? yargs.argv.persist : null;
             ;
             rtHandlers = {

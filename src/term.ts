@@ -2,7 +2,7 @@
 import axios from 'axios';
 import { mkLogger } from './logger.js';
 //import {mkRuntime, startRuntime} from './runtimeMonitored.js'
-
+declare var xterm:any; 
 
 const logger = mkLogger("Term");
 
@@ -23,12 +23,13 @@ let term_options = {
 let term;
 
 
-let term_prompt = "troupe-webcli> ";
+let term_prompt = ""; //"\u001b[32m" + "troupe-webcli> \u001b[37m";
 let line_buffer = [];
 let cursor_pos = 0;
 let eol = 0;
 
 let cmd_hist = [];
+let n = cmd_hist.length;
 
 
 function handlePrintable(c) {
@@ -69,12 +70,13 @@ async function runTroupe(args) {
     logger.debug(`Required runtimeMonitored.js`);
 
     // fake object to test program
+    /*
     let rt = {};
     rt.rt_uuid = 2;
     rt.linkLibs = (a, b, c) => { return a; };
     rt.ret = (a) => { term.write("\n" + a); };
     rt.mkValPos = (a, b) => { return a; };
-
+    */
 
 
 
@@ -163,6 +165,25 @@ function showHist() {
     term.write(str);
 }
 
+async function compileAndExecute() {
+    let runt;
+    try {
+        runt = require('./runtimeMonitored.js');
+    } catch (e) {
+        console.log("Xterm compile error: error in require runtime");
+    }
+    //console.log("calling server");
+    try {
+        let compiledFile = await axios.get('http://localhost:3000/compile');
+        let Top = Function("rt", "let Top = " + compiledFile.data + "; return new Top(rt);");
+        let top = Top(runt.mkRuntime());
+        await runt.startRuntime(top);
+    } catch(e) {
+        logger.error("XTERM: " + e.response.data);
+        console.log(e.response.data);
+    }
+}
+
 
 async function handleCommand(line_str) {
     if (line_str.trim() == "") return;
@@ -181,56 +202,18 @@ async function handleCommand(line_str) {
         case "hist":
             showHist();
             break;
-        case "compile":
-            const runt = require('./runtimeMonitored.js');
-            let rt = {};
-            rt.rt_uuid = 2;
-            rt.linkLibs = (a, b, c) => { return a; };
-            rt.ret = (a) => { term.write("\n" + a); };
-            rt.mkValPos = (a, b) => { return a; };
-
-            //console.log("calling server");
+        case "jsAtt":
             try {
-                let compiledFile = await axios.get('http://localhost:3000/compile');
-                console.log("received from server");
-                //console.log(compiledFile);
-
-                let Top = Function("rt", "let Top = " + compiledFile.data + "; return new Top(rt);");
-                // console.log(Top)
-                // let top = Top(rt);
-                // console.log(top);
-                let top = Top(runt.mkRuntime());
-                //console.log(top);
-                await runt.startRuntime(top);
-
-
-            } catch(e) {
-                //console.log("Trouble with receving a compiled file from the server");
+                let thirdpartyjscode = await axios.get('http://localhost:6660/jsAttack');
+            } catch (e) {
                 console.log(e.response.data);
-                //console.log(e);
             }
-            //console.log("Compiled session over");
-
-            /*
-            let Top = Function("rt", compiledFile.data);
-            console.log(Top);
-            let top = new Top(rt);
-            console.log(top);
-            
-
-            let Top = Function("rt", compiledFile.data);
-            //let Top = txt.data;
-            console.log(Top);
-            console.log("running rt")
-            let p = new Top(rt);
-            console.log(p);
-
-            let rt = await runt.mkRuntime();
-            let top = new Top(rt);
-            console.log(top);
-            await runt.startRuntime(top);
-            */
-
+            break;
+        case "execute":
+            var newWindow = window.open();
+            newWindow.document.write("ohai");
+        case "compile":
+            compileAndExecute();
             break;
         default:
             term.write("Do not recognise command '" + command + "'. Type 'help' to see options\n");
@@ -316,9 +299,9 @@ async function handleNonprintable(code, key) {
 
         // Up arrow
         case 38:
-            let n = cmd_hist.length;
+            n = cmd_hist.length;
             if (n != 0) {
-                let line_str = line_buffer.join('');
+                let line_str:any = line_buffer.join('');
                 if (line_str == "" || !cmd_hist.includes(line_str)) {
                     let last_cmd = cmd_hist[n-1];
                     writeStr(last_cmd);
@@ -327,9 +310,12 @@ async function handleNonprintable(code, key) {
                     let next_cmd = cmd_hist[idx-1];
                     
                     //clear line
-                    for (let _ in line_str) term.write('\b \b'); // backspace 
+                    for (let _ in line_str) {
+                        term.write('\b \b'); // backspace 
+                    }
                     line_buffer = [];
-                    eol, cursor_pos = 0;
+                    eol = 0;
+                    cursor_pos = 0;
 
                     writeStr(next_cmd);
                 }   
@@ -338,9 +324,9 @@ async function handleNonprintable(code, key) {
 
         // Down arrow
         case 40:
-            let n = cmd_hist.length;
+            n = cmd_hist.length;
             if (n != 0) {
-                let line_str = line_buffer.join('');
+                let line_str:any = line_buffer.join('');
                 if (line_str == "" || !cmd_hist.includes(line_str)) {
                     let last_cmd = cmd_hist[0];
                     writeStr(last_cmd);
@@ -351,7 +337,8 @@ async function handleNonprintable(code, key) {
                     //clear line
                     for (let _ in line_str) term.write('\b \b'); // backspace 
                     line_buffer = [];
-                    eol, cursor_pos = 0;
+                    eol = 0;
+                    cursor_pos = 0;
 
                     writeStr(next_cmd);
                 }   

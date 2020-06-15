@@ -1,0 +1,5 @@
+let val x = false raisedTo { pub }
+    val y = true raisedTo { sec }
+
+in y = x
+end

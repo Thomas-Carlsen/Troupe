@@ -1,6 +1,5 @@
 dist
 dist-*
-rt/built_web
 cabal-dev
 *.o
 *.hi

@@ -1,0 +1,7 @@
+let val x = false raisedTo { pub }
+    val y = true raisedTo { sec }
+in 
+    if y = true
+    then x = true
+    else x
+end

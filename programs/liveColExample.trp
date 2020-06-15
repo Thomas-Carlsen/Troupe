@@ -1,0 +1,14 @@
+let
+    val s = true raisedTo {secret}
+    fun liveCollectionAttack sec =
+        let
+            val nodes = getElementsByTagName ("div")
+            val x = htmlColLength (nodes)
+            val newDiv = makeDiv ("newDiv")
+            val body = getBody ()
+            val _ = if (sec) then appendChild (body, newDiv) else ()
+            val y = htmlColLength (nodes)
+        in x <> y 
+        end
+in liveCollectionAttack s
+end

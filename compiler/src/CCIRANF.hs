@@ -265,12 +265,13 @@ instance WellFormedIRCheck IRExpr where
                      , "webBuilder"
                      , "makeDiv"
                      , "getElementsByTagName"
-                     , "lengthOf"
+                     , "htmlColLength"
                      , "appendToBody"
                      , "getBody"
                      , "append"
                      , "addEventListener"
                      , "appendChild"
+                     , "getHTMLBody
                      ]
         then return ()
         else fail $ "bad base function: " ++ fname

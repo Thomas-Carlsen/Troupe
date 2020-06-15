@@ -132,10 +132,14 @@ let rt_localStorageDelete;
 let rt_webBuilder;
 let rt_makeDiv;
 let rt_getElementsByTagName;
-let rt_lengthOf;
-let rt_appendToBody;
+let rt_htmlColLength;
+let rt_appendChild;
 let rt_getBody;
 let rt_append;
+let rt_getHTMLBody;
+
+let domCreated = false;
+let domTree = []
 
 let raiseCurrentThreadPC;
 let raiseCurrentThreadPCToBlockingLev;
@@ -192,11 +196,29 @@ function lubs(x) {
     }
     return r;
   }
+};
+
+function domCreation(){
+  if (domCreated)
+    return;
+  domTree.push(__sched.__currentThread.mkVal(document))
+  
+  for (let i = 0; i < document.all.length; i++){
+    domTree.push(__sched.__currentThread.mkVal(document.all[i]))
+  }
+  domCreated = true;
+  console.log("dom creation")
+  console.log(domTree)
 }
-;
 
 
-
+function traverseDOMLabels() {
+  let lev = levels.BOT
+  domTree.forEach(element => {
+    lev = levels.lub(lev, element.lev);
+  });
+  return lev;
+}
 
 
 
@@ -1071,7 +1093,7 @@ function initRuntime() {
     div.style.borderWidth = "thin";
     div.setAttribute("id", idName);
 
-    let divelement = new DOM(div, rt_getBody());
+    //let divelement = new DOM(div, rt_getBody());
     rt_ret(__sched.__currentThread.mkVal(div));
   }, "rt_makeDiv");
 
@@ -1079,29 +1101,33 @@ function initRuntime() {
     assertNormalState("getElementsByTagName");
     // todo: assert only one string
     console.log("get elements");
+    domCreation();
     let tagName = arg.val;
     let elements = document.getElementsByTagName(tagName);
     rt_ret(__sched.__currentThread.mkVal(elements));
   }, "rt_getElementsByTagName");
 
-  rt_lengthOf = mkBase((env, arg) => {
+  rt_htmlColLength = mkBase((env, arg) => {
     assertNormalState("lengthOf");
-    // todo: assert is one argument and liveCollection
+    // todo: assert is one argument and collection
     console.log("length")
     console.log(arg)
-    let liveCollection = arg.val;
-    rt_ret(__sched.__currentThread.mkVal(liveCollection.length));
-  }, "rt_lengthOf");
+    let collection = arg.val;
+    let lev = traverseDOMLabels()
+    console.log("travese")
+    rt_ret(__sched.__currentThread.mkValWithLev(collection.length, lev));
+  }, "rt_htmlColLength");
 
-  rt_appendToBody = mkBase((env, arg) => {
-    assertNormalState("appendToBody");
+  rt_appendChild = mkBase((env, arg) => {
+    assertNormalState("appendChild");
     // todo: assert is one argument but array
-    console.log("append to body")
+    console.log("append child")
     console.log(arg)
-    let element = arg.val;
-    document.body.appendChild(element);
+    let parentNode = arg.val[0];
+    let childNode = arg.val[1];
+    parentNode.appendChild(childNode);
     rt_ret(__unit);
-  }, "rt_appendToBody");
+  }, "rt_appendChild");
 
   rt_getBody = mkBase((env, arg) => {
     assertNormalState("getBody");
@@ -1600,8 +1626,9 @@ function RuntimeObject() {
   this.webBuilder = rt_webBuilder;
   this.makeDiv = rt_makeDiv;
   this.getElementsByTagName = rt_getElementsByTagName;
-  this.lengthOf = rt_lengthOf;
-  this.appendToBody = rt_appendToBody;
+  this.htmlColLength = rt_htmlColLength;
+  this.appendChild = rt_appendChild;
+  this.getBody = rt_getBody;
 
   this.raisedTo = function (x, y) {
     return new LVal(x.val, lub(lub(x.lev, y.val), y.lev), lubs([x.tlev, y.tlev, __sched.pc]))

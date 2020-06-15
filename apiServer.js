@@ -1,4 +1,4 @@
-const { spawn } = require('child_process');
+const { spawn, execSync } = require('child_process');
 const express =  require('express');
 const cors = require('cors');
 const fs = require('fs');
@@ -25,14 +25,23 @@ function readWriteSync(file) {
 }
 
 app.get('/compile', (req, res) => {
-    
-    
-    let p = spawn(process.env.TROUPE + '/bin/troupec', ['./webTestFiles/test1.trp']);
-    readWriteSync('./out/out.js');
-    res.sendFile(__dirname + '/out/out.js');
+    try {
+        execSync(process.env.TROUPE + '/bin/troupec ' + process.argv[2]);
+        readWriteSync('./out/out.js');
+        res.sendFile(__dirname + '/out/out.js');
+    } catch(error) {
+        console.log(process.env.TROUPE);
+        let m = error.message.split("\n")
+        m.shift()
+        res.status(400).send("Troupe compilation failed:\n" + m.join("\n"));
+
+        //console.dir(e);
+        console.log("Server still running")
+
+    }
 });
 
 
 app.listen(port, () => {
-    console.log(`Example app listening on port ${port}!`)
+    console.log(`API Server listening on port ${port}!`)
 });

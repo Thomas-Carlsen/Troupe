@@ -247,6 +247,22 @@ function setNodeLabel(node, lvl){
   } 
 }
 
+function targetToCurrentTargetLub(target, currentT) {
+  let t = getNode(target);
+  let res = t.lev;
+  let next = t.val.parent;
+  for (let i=0; i < domTree.length; i++) {
+    if (next != null){
+      res = levels.lub(res, next.lev);
+    } else if (next != currentT.val){
+      res = levels.lub(res, next.lev);
+      return res;
+    } else
+      break;
+  }
+  return res;
+}
+
 
 
 
@@ -1184,8 +1200,8 @@ function initRuntime() {
     let thead = __sched.__currentThread;
     console.log("mus")
     console.log(arg)
-    //rt_ret(thead.mkValWithLev(val, lev));
-    rt_ret(__unit);
+    let e = new MouseEvent("click", {bubbles: true })
+    rt_ret(__sched.mkVal(e));
   }, "rt_mouseEvent");
   
   
@@ -1194,17 +1210,30 @@ function initRuntime() {
     let thead = __sched.__currentThread;
     console.log("dispaa")
     console.log(arg)
-    //rt_ret(thead.mkValWithLev(val, lev));
+    let labeledNode = arg.val[0];
+    let eventLVal = arg.val[1];
+    
+    labeledNode.val.dispatchEvent(eventLVal.val);
     rt_ret(__unit);
   }, "rt_dispatchEvent");
 
   rt_addEventListener = mkBase((env, arg) => {
     assertNormalState("dispatchEvent");
-    let thead = __sched.__currentThread;
+    let thread = __sched.__currentThread;
     console.log("add Event Lis")
     console.log(arg)
-    let eventType = arg.val[0];
-    let fun = arg.val[1];
+    let labeledNode = arg.val[0];
+    let eventType = arg.val[1];
+    let funLVal = arg.val[2];
+
+    function f (e){
+      let lvl = targetToCurrentTargetLub(e.target, e.currentTarget)
+      __sched.pc = levels.lub(__sched.pc, lvl);
+      thread.next = () => {
+        funLVal();
+      }
+    }
+    labeledNode.val.addEventListener(eventType.val, f);
 
     //rt_ret(thead.mkValWithLev(val, lev));
     rt_ret(__unit);

@@ -221,6 +221,30 @@ function traverseDOMLabels() {
 }
 
 
+function getNode(node) {
+  let res;
+  domTree.forEach(element => {
+    let val = element.val;
+    if(node == val){
+      console.log("the node")
+      console.log(element)
+      res = element;
+    }
+  }); 
+  return res;
+}
+
+
+function setNodeLabel(node, lvl){
+  for (let index = 0; index < domTree.length; index++) {
+    const element = domTree[index];
+    if(node == element.val){
+      domTree[index] = __sched.__currentThread.mkValWithLev(node, lvl);
+    }
+  } 
+}
+
+
 
 
 // --------------------------------------------------
@@ -1123,20 +1147,31 @@ function initRuntime() {
     // todo: assert is one argument but array
     console.log("append child")
     console.log(arg)
+    let PC = __sched.pc;
     let parentNode = arg.val[0];
     let childNode = arg.val[1];
-    parentNode.appendChild(childNode);
+    let newlabel = levels.lub(levels.lub(PC, parentNode.lev), childNode.lev)
+    setNodeLabel(parentNode, newlabel);
+    domTree.push(__sched.__currentThread.mkValWithLev(childNode, newlabel));
+    parentNode.val.appendChild(childNode.val);
     rt_ret(__unit);
   }, "rt_appendChild");
 
   rt_getBody = mkBase((env, arg) => {
     assertNormalState("getBody");
     let thead = __sched.__currentThread;
-    let body = document.body;
+    //let body = document.body;
+    let bodyWithLbl : any = getNode(document.body);
+    console.log("this bod")
+    console.log(bodyWithLbl)
+    let val = bodyWithLbl.val;
+    let lev = bodyWithLbl.lev;
+    /*
     let html = body.parentElement;
     let htmlDOM = new DOM(html, null);
     let bodyDOM = new DOM(body, thead.mkVal(htmlDOM));
-    rt_ret(thead.mkVal(bodyDOM));
+    */
+    rt_ret(thead.mkValWithLev(val, lev));
   }, "rt_getBody");
 
 }

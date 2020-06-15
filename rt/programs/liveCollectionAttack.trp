@@ -1,0 +1,31 @@
+let
+    val sec = false raisedTo {secret}
+
+    val nodes = getElementsByTagName ("div")
+    val x = arrayLength (nodes)
+    val newDiv = makeDiv ("newDiv")
+    val body = getBody ()
+    (* make below more generic: append(a, b) append a to b or append b to a - and make function to get body *)
+    val _ = if (sec) then appendToBody (newDiv) else ()
+    val y = arrayLength (nodes)
+in x <> y (* blocking label is going all the way trough *)
+end
+
+(*
+
+remember to not include DOM stuf in sandbox ... we have some kind of blocking label race which can leak?
+- aslan said something like this
+
+think about levels for DOM objects, is length leaking informtion f.ex.
+
+1. design DOM objects in troupe
+    - which functions are allowed or elected to be implemented
+2. figure out which sec level this object and its subobjects to have and why
+3. how to enforce this in troupe runtime
+4. what did the article do ?
+
+
+think about design decisions in regards to 
+create, search, manipulate (update), attach and execute event handlers for DOM objects
+
+*)

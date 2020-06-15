@@ -3,11 +3,13 @@ class RtClosure {
   fun;
   namespace;
   stringRep;
-  constructor(e, p, f) {
-    this.env = e;
-    this.fun = f;
-    this.namespace = p
-    this.stringRep = function (omitLevels = false) {
+  
+  constructor(env, p, fun) {
+    console.log("New Closure");
+    this.env = env;
+    this.fun = fun;
+    this.namespace = p // pointer. So we can fields of this object i.e. namespace
+    this.stringRep = (omitLevels = false) => {
       return "fn => .."
     }
   }

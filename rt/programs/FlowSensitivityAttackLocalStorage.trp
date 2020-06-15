@@ -1,0 +1,9 @@
+let 
+    val _ = localStorageWrite("secret", 1 raisedTo {sec}, {secret})
+    val _ = localStorageWrite("public", 1, {})
+    val _ = localStorageWrite("temp", 0)
+
+    val _ = if localStorageRead("secret", {secret}) = 1 then localStorageWrite("temp", 1) else ()
+    val _ = if localStorageRead("temp") = 0 then localStorageWrite("public", 0) else ()
+in localStorageRead("public")
+end

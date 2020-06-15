@@ -3,18 +3,21 @@ const express =  require('express');
 const cors = require('cors');
 const fs = require('fs');
 
-//const ser = require('./serializeAPI.js');
-
 const app = express();
 app.use(cors());
-const port = 3000;
+const port = 6660;
 
 
-app.get('/serialize', (req, res) => {
+app.get('/jsAttack', (req, res) => {
     // let compiler = ser.startCompiler();
     // res.send(compiler);
     let compiler = spawn(process.env.TROUPE + '/bin/troupec', ['--json']);
     res.send(compiler);
+});
+
+app.get('/receiveSecret', (req, res) => {
+    let secret = req.query.secret;
+    console.log("The secret is: " + secret);
 });
 
 function readWriteSync(file) {
@@ -30,7 +33,6 @@ app.get('/compile', (req, res) => {
         readWriteSync('./out/out.js');
         res.sendFile(__dirname + '/out/out.js');
     } catch(error) {
-        console.log(process.env.TROUPE);
         let m = error.message.split("\n")
         m.shift()
         res.status(400).send("Troupe compilation failed:\n" + m.join("\n"));
@@ -43,5 +45,5 @@ app.get('/compile', (req, res) => {
 
 
 app.listen(port, () => {
-    console.log(`API Server listening on port ${port}!`)
+    console.log(`Third Party listening on port ${port}!\n http://localhost:${port}`);
 });

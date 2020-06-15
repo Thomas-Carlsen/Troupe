@@ -2,6 +2,7 @@ export class BaseFunction {
   env: any;
   fun: any;
   stringRep: () => string;
+
     constructor(f, name=null) {
       this.env = null;
       this.fun = f;
@@ -12,7 +13,7 @@ export class BaseFunction {
           return "<basefun:_>"
         }
       }
-    }
+    }    
   }
 
   

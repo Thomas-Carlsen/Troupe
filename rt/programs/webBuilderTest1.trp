@@ -1,0 +1,15 @@
+let 
+    val sec = true raisedTo {secret}
+    val pub = false raisedTo {public}
+
+    val fun aCk = send ()
+    val fun bCk = ()
+
+    val a = makeDiv ("a")
+    val b = makeDiv ("b")
+    val _ = addEventListener (a, aCk)
+    val _ = addEventListener (b, bCk)
+    val _ = if (sec) then appendChild (a, b) else ()
+    val eventObject = MouseEvent('click', {bubbles: true })
+in dispatchEvent (b, eventObject)
+end

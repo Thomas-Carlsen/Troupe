@@ -1,0 +1,19 @@
+let
+    val sec = true raisedTo {secret}
+    fun captureAttack sec =
+        let 
+            val pub = false raisedTo {public}
+
+            val fun aCk = send true
+
+            val a = getElementsByTagId ('a')
+            val b = getElementsByTagId ('b')
+            val c = getElementsByTagId ('c')
+            val _ = addEventListener (a, aCk)
+            val _ = if (sec) then appendChild (b, c) else ()
+
+            val event = mouseEvent('click', {bubbles: true })
+        in dispatchEvent (c, event)
+        end
+in captureAttack sec
+end

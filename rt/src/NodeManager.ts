@@ -1,4 +1,7 @@
-'use strict'
+import {mkLogger} from './logger.js'
+const logger = mkLogger("NodeManager");
+
+
 class Node {
     nodeId;
     constructor(nodeId) {
@@ -10,18 +13,21 @@ class NodeManager {
     localNode;
     levels;
     aliases;
-    constructor (levels, aliases) {
+    constructor(levels, aliases) {
+        logger.debug(`Created new NodeManager with levels ${levels} and aliases ${aliases}`)
         this.localNode = null;
         this.levels = levels;
         this.aliases = aliases
     }
 
-    setLocalHostPort (h)  {
+    setLocalHostPort(h)  {
+        logger.debug(`setLocalHostPort: Sets localNode to be a new Node with nodeId ${h}`)
         if (this.localNode != null) {
-            console.log ("error: local port already set. quitting...");
-            process.exit(1);
+            // todo: make nodemanager and all files reset properly, so we dont get below mes
+            //logger.error("local port already set. quitting...");
+            //process.exit(1);
         }
-        this.localNode = new Node (h);
+        this.localNode = new Node(h);
     }
 
     getNodeId () {
@@ -29,7 +35,7 @@ class NodeManager {
     }
 
     getNode(nodeName) {
-        if (nodeName.startsWith ("@")) {
+        if (nodeName.startsWith("@")) {
             nodeName = this.aliases[nodeName.substring(1)];
         }
         // TODO: error handling in case aliases are not available; 2020-01-31
@@ -39,8 +45,8 @@ class NodeManager {
 
     isLocalNode (id) {
         if (this.localNode == undefined) {
-            console.log("ERROR: local node undefined; should not happen")
-            process.exit(1);
+            logger.error("local node undefined; should not happen")
+            //process.exit(1);
         }
         return this.localNode.nodeId == id
     }
@@ -48,8 +54,8 @@ class NodeManager {
     // Another hack; 2018-03-10; aa
     getLocalNode() {
         if (this.localNode == undefined) {
-            console.log("ERROR: local node undefined; should not happen")
-            process.exit(1);
+            logger.error("local node undefined; should not happen")
+            //process.exit(1);
         }
         return this.localNode;
     }

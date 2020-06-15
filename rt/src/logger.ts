@@ -1,35 +1,43 @@
-// 2018-07-21: AA; A very basic logging setup ... Not particularly attached to
-// this library or this way of doing things, but this still beats console
-// outputs. 
+import {term} from './term.js';
 
-const { createLogger, format, transports } = require('winston');
-const { combine, timestamp, label, printf } = format;
+class Logger {
+    caller : string
+    level : string
+    constructor(caller:string, level:string) {
+        this.caller = caller;
+        this.level = level;
+    }
+    //use unpack ...args
+    log(mess:string) {
+        term.write(mess + "\n");
+        if (this.level = 'debug') 
+            console.log("Log in " + this.caller + ": " + mess);
+    }
+    info(mess:string) {
+        //console.info(this.caller + ": " + mess);
+        term.write(this.caller + ": " + mess + "\n");
+    }
+    debug(mess:string) {
+        return;
+        if (this.level == 'debug') {
+            term.write("Debug in " + this.caller + ": " + mess + "\n");
+            //console.log("debug:" + this.caller + ": " + mess);
+        }
+        
+    }
+    warning(mess:string) {
+        // errors in term will be added in later
+        term.write("\u001b[33m" + "Warning in " + this.caller + ": " + mess + "\u001b[37m\n");
+        console.warn(this.caller + ": " + mess);
+    }
 
-const myFormat = printf(info => {
-  //  return `${info.timestamp} ${info.level}: ${info.message}`;
-  return `${info.timestamp} [${info.label}] ${info.level}: ${info.message}`;
-});
+    error(mess:string) {
+        // errors in term will be added in later
+        term.write("\u001b[31m" + "Error in " + this.caller + ": " + mess + "\u001b[37m\n");
+        console.error(this.caller + ": " + mess);
+    }
+}
 
-const console = new transports.Console();
-
-export const mkLogger = (l, level='info') => createLogger({
-  level : level, // comment out this file to remove debug messages
-  format: combine(
-    format.colorize(),
-
-    
-    label({ label: `${l}` }),
-    timestamp(),
-    myFormat
-  ),
-  transports: [console]
-});
-
-
-
-// const log1 = mkLogger("logger 1");
-// const log2 = mkLogger("logger 2");
-
-
-// log1.info ('hello')
-// log2.info ('bye')
+export function mkLogger(caller:string, level="debug") {
+    return new Logger(caller, level);
+}

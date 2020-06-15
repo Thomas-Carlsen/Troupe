@@ -1,0 +1,49 @@
+{
+  "name": "troupe-in-browser",
+  "version": "1.0.0",
+  "description": "A ported version of troupe in the browser",
+  "main": "index.js",
+  "browserslist": [
+    "last 2 Chrome versions"
+  ],
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "parcel index.html",
+    "server": "star-signal"
+  },
+  "staticFiles": {
+    "staticPath": "public",
+    "watcherGlob": "**"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@babel/preset-env": "^7.8.3",
+    "@nodeutils/defaults-deep": "^1.1.0",
+    "@types/node": "^13.9.1",
+    "aggregate-error": "^3.0.1",
+    "axios": "^0.19.2",
+    "cors": "^2.8.5",
+    "express": "^4.17.1",
+    "libp2p": "^0.27.3",
+    "libp2p-bootstrap": "^0.10.3",
+    "libp2p-kad-dht": "^0.18.5",
+    "libp2p-mplex": "^0.9.3",
+    "libp2p-secio": "^0.12.2",
+    "libp2p-webrtc-star": "^0.17.3",
+    "libp2p-websockets": "^0.13.2",
+    "parcel-plugin-static-files-copy": "^2.3.1",
+    "pull-pushable": "^2.2.0",
+    "pull-stream": "^3.6.14",
+    "xterm": "^4.4.0"
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.8.3",
+    "@babel/core": "^7.8.3",
+    "babel-plugin-syntax-async-functions": "^6.13.0",
+    "babel-plugin-transform-regenerator": "^6.26.0",
+    "babel-polyfill": "^6.26.0",
+    "parcel-bundler": "^1.12.4"
+  }
+}

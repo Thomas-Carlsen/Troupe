@@ -1,6 +1,6 @@
 import * as path from 'path';
 let yargs = require('yargs');
-import runtime from './runtimeMonitored.js';
+import {mkRuntime, startRuntime} from './runtimeMonitored.js';
 
 let p  = yargs.argv.f;
 if (!path.isAbsolute(p))  {
@@ -8,8 +8,8 @@ if (!path.isAbsolute(p))  {
 }
 
 import(p).then(Top => {
-    let top = new Top (runtime.runtime)
-    runtime.start(top);
+    let top = new Top (mkRuntime())
+    startRuntime(top);
 });
 
 /*

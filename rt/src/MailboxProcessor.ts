@@ -1,13 +1,13 @@
 'use strict'
-const LVal = require('./Lval.js').LVal;
-
+import {LVal} from './Lval.js';
+import {HandlerState as SandboxStatus } from './SandboxStatus.js';
+import levels from './options.js';
 import {mkLogger} from './logger.js';
+
 const logger = mkLogger('mbox');
 const debug = x => logger.debug(x)
 
-import {HandlerState as SandboxStatus } from './SandboxStatus.js';
 
-import levels from './options.js';
 
 
 
@@ -67,7 +67,11 @@ class MailboxProcessor {
         let assertIsHandler = this.rtObj.assertIsHandler;
         let theThread = __sched.__currentThread;
 
-        function iterate(handlerToUse, messageToCheck) {            
+        function iterate(handlerToUse, messageToCheck) {   
+            function futureMessage() {
+                debug("unblocking");
+                iterate(0, messageToCheck);
+            }         
             debug(`* checkMessages  ${handlerToUse} ${messageToCheck} ${messages.length}`);
             if (handlerToUse < handlers.length && messageToCheck < messages.length) {
                 debug("### 1");
@@ -137,10 +141,7 @@ class MailboxProcessor {
                 }
             } else {
                 debug("### 2");
-                function futureMessage() {
-                    debug ("unblocking");
-                    iterate(0, messageToCheck);
-                }
+                
 
                 __sched.__currentThread.block (futureMessage) ; 
                 // __sched.__currentThread.handlerState =  new HandlerState.INHANDLER(null);                

@@ -271,7 +271,8 @@ instance WellFormedIRCheck IRExpr where
                      , "append"
                      , "addEventListener"
                      , "appendChild"
-                     , "getHTMLBody
+                     , "mouseEvent"
+                     , "dispatchEvent"
                      ]
         then return ()
         else fail $ "bad base function: " ++ fname

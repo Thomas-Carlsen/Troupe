@@ -1,0 +1,16 @@
+let
+    val sec = true raisedTo {secret}
+    fun bubblesAttack sec =
+        let 
+            val pub = false raisedTo {public}
+            fun aCk () = "hello"
+            val a = makeDiv ("a")
+            val b = makeDiv ("b")
+            val _ = appendChild (getBody (), a)
+            val _ = addEventListener (a, aCk)
+            val _ = if (sec) then appendChild (a, b) else ()
+            val event = mouseEvent("click", {bubbles: true })
+        in dispatchEvent (b, event)
+        end
+in bubblesAttack sec
+end

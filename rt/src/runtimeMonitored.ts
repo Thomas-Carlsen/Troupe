@@ -137,6 +137,9 @@ let rt_appendChild;
 let rt_getBody;
 let rt_append;
 let rt_getHTMLBody;
+let rt_mouseEvent;
+let rt_dispatchEvent;
+let rt_addEventListener;
 
 let domCreated = false;
 let domTree = []
@@ -1106,6 +1109,7 @@ function initRuntime() {
 
   rt_makeDiv = mkBase((env, arg) => {
     assertNormalState("makeDiv");
+    domCreation();
     // todo: be able to receive body, and make it a parent to Div
     // if noting else is specifite through the DOM object type.
     // i.e. div = new DOM(elemt, parent, ... )
@@ -1154,6 +1158,7 @@ function initRuntime() {
     setNodeLabel(parentNode, newlabel);
     domTree.push(__sched.__currentThread.mkValWithLev(childNode, newlabel));
     parentNode.val.appendChild(childNode.val);
+    console.log("ehat")
     rt_ret(__unit);
   }, "rt_appendChild");
 
@@ -1173,6 +1178,37 @@ function initRuntime() {
     */
     rt_ret(thead.mkValWithLev(val, lev));
   }, "rt_getBody");
+
+  rt_mouseEvent = mkBase((env, arg) => {
+    assertNormalState("mouseEvent");
+    let thead = __sched.__currentThread;
+    console.log("mus")
+    console.log(arg)
+    //rt_ret(thead.mkValWithLev(val, lev));
+    rt_ret(__unit);
+  }, "rt_mouseEvent");
+  
+  
+  rt_dispatchEvent = mkBase((env, arg) => {
+    assertNormalState("dispatchEvent");
+    let thead = __sched.__currentThread;
+    console.log("dispaa")
+    console.log(arg)
+    //rt_ret(thead.mkValWithLev(val, lev));
+    rt_ret(__unit);
+  }, "rt_dispatchEvent");
+
+  rt_addEventListener = mkBase((env, arg) => {
+    assertNormalState("dispatchEvent");
+    let thead = __sched.__currentThread;
+    console.log("add Event Lis")
+    console.log(arg)
+    let eventType = arg.val[0];
+    let fun = arg.val[1];
+
+    //rt_ret(thead.mkValWithLev(val, lev));
+    rt_ret(__unit);
+  }, "rt_addEventListener");
 
 }
 
@@ -1664,6 +1700,10 @@ function RuntimeObject() {
   this.htmlColLength = rt_htmlColLength;
   this.appendChild = rt_appendChild;
   this.getBody = rt_getBody;
+  this.mouseEvent = rt_mouseEvent;
+  this.dispatchEvent= rt_dispatchEvent;
+  this.addEventListener = rt_addEventListener;
+
 
   this.raisedTo = function (x, y) {
     return new LVal(x.val, lub(lub(x.lev, y.val), y.lev), lubs([x.tlev, y.tlev, __sched.pc]))

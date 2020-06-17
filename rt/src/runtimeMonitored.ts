@@ -248,14 +248,17 @@ function setNodeLabel(node, lvl){
 }
 
 function targetToCurrentTargetLub(target, currentT) {
-  let t = getNode(target);
-  let res = t.lev;
-  let next = t.val.parent;
+
+  if (!domTree.includes(target))
+    return target.lev;
+
+  let res = target.lev;
+  let next = target.val.parent;
   for (let i=0; i < domTree.length; i++) {
     if (next != null){
-      res = levels.lub(res, next.lev);
+      res = levels.lub(res, getNode(next).lev);
     } else if (next != currentT.val){
-      res = levels.lub(res, next.lev);
+      res = levels.lub(res, getNode(next).lev);
       return res;
     } else
       break;
@@ -1227,7 +1230,9 @@ function initRuntime() {
     let funLVal = arg.val[2];
 
     function f (e){
-      let lvl = targetToCurrentTargetLub(e.target, e.currentTarget)
+      let targetLVal = __sched.mkVal(e.target);
+      let currentTargetLVal = __sched.mkVal(e.currentTarget);
+      let lvl = targetToCurrentTargetLub(targetLVal, currentTargetLVal)
       __sched.pc = levels.lub(__sched.pc, lvl);
       thread.next = () => {
         funLVal();
